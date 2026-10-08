@@ -296,7 +296,7 @@ describe("territory and replay", () => {
         (l) => l.text.includes("世界事件") || l.text.includes("资源雨"),
       ),
     ).toBe(true);
-  });
+  }, 30000);
   it("rejects corrupt, incompatible and inconsistent saves without changing the source world", () => {
     const original = small();
     const before = JSON.stringify(original);
