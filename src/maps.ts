@@ -67,7 +67,7 @@ export const TERRAIN_COLORS: Record<Terrain, string> = {
 export const MAP_HINTS: Record<MapType, string> = {
   grassland: "草地正常通行 · 岩石阻挡",
   desert: "沙地减速至70% · 沙丘阻挡",
-  snow: "冰面保持滑行 · 最高230速度",
+  snow: "冰面自由滑行 · 弹性反弹",
   forest: "林地减速至65% · 树木阻挡",
   valley: "山壁阻挡 · 沿谷地通行",
   islands: "水岸反弹 · 桥梁连接岛屿 · 箭矢可越水",

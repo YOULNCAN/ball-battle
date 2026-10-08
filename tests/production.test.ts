@@ -65,7 +65,7 @@ describe("territory production and base soldiers", () => {
       const w = world(ratio);
       for (let i = 0; i < 900; i++) recruit(w, STEP);
       expect(w.kingdoms[0].recruited).toBe(
-        Math.floor((30 * (1 + ratio)) / 2.5),
+        10 * Math.floor((30 * (1 + ratio)) / 2.5),
       );
       expect(w.kingdoms[0].resources).toBe(
         10000 - 18 * w.kingdoms[0].recruited,
@@ -78,7 +78,7 @@ describe("territory production and base soldiers", () => {
     expect(w.kingdoms[0].recruitProgress).toBeCloseTo(0.4);
     w.cells.filter((c) => !c.blocked).forEach((c) => (c.owner = 0));
     recruit(w, 0.75);
-    expect(w.kingdoms[0].recruited).toBe(1);
+    expect(w.kingdoms[0].recruited).toBe(10);
   });
   it("shortage and population cap store at most one ready recruit, not a burst backlog", () => {
     const w = world(1),
@@ -87,16 +87,16 @@ describe("territory production and base soldiers", () => {
     for (let i = 0; i < 900; i++) recruit(w, STEP);
     expect(k.recruitProgress).toBe(1);
     expect(k.recruited).toBe(0);
-    k.resources = 100;
+    k.resources = 1000;
     recruit(w, STEP);
-    expect(k.recruited).toBe(1);
+    expect(k.recruited).toBe(10);
     expect(k.recruitProgress).toBe(0);
     w.settings.cap = w.balls.length;
     for (let i = 0; i < 900; i++) recruit(w, STEP);
     expect(k.recruitProgress).toBe(1);
-    w.settings.cap++;
+    w.settings.cap += 10;
     recruit(w, STEP);
-    expect(k.recruited).toBe(2);
+    expect(k.recruited).toBe(20);
     expect(k.recruitProgress).toBe(0);
   });
   it("all ordinary starting and recruited soldiers share the minimum base state, while kings are reinforced", () => {

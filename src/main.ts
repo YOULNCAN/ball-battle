@@ -456,11 +456,11 @@ $(".brand").onclick = (e) => {
 $("#help").onclick = () => {
   if (screen === "game") setPaused(true);
   showDialog(
-    `<div class="eyebrow">FIELD GUIDE</div><h2>做一位世界观察者</h2><div class="guide"><p><b>01 / 看碰撞</b>球球自动运动并反弹。普通战斗友军无伤，敌军互伤；速度、质量与属性决定伤害。金色王冠标记国王。</p><p><b>02 / 看成长</b>击败敌人获得经验，升级变大并解锁护盾、重击、吸血或加速。死亡留下金色资源，由触碰它的球收集。</p><p><b>03 / 看兴衰</b>城堡消耗18资源招募士兵，每秒产出2资源。领地越多招募越快，间隔2.5秒至1.25秒；资源不足或满员最多保留一次待招募进度。普通球初始为1级、无技能和统一基础属性，之后通过战斗成长。国王死亡会有继任者；城堡被摧毁则全国归入进攻者。</p><p><b>04 / 看统一</b>球在地块内停留占领，多国共处暂停争夺。只剩一个王国时自动收拢剩余领地，随后结算。</p><p><b>爆炸与火圈</b>国王（含继任者）死亡引发半径150、80固定伤害爆炸，可立即连锁。城堡陷落立即归并，原位置先产生半径140、80伤害爆炸，再留下半径110的火圈，持续15秒，每0.5秒灼烧6生命，最后3秒逐渐熄灭。它们伤及敌我球球，不损伤城堡，不授予经验或击杀；山壁阻隔伤害，火圈不阻挡移动。领地以平滑连接区域显示，占领与生产计算不变。</p><p><b>操作</b>拖动地图、滚轮缩放，点击球或城堡查看详情。空格暂停，方向键移动镜头，+ / − 缩放，F 显示全图。手动和自动存档互不覆盖。</p><p>存档保存在当前浏览器与当前网站地址下；请导出JSON备份。高倍速在设备繁忙时可能达不到标称速度，实际速度显示在地图下方。</p></div>`,
+    `<div class="eyebrow">FIELD GUIDE</div><h2>做一位世界观察者</h2><div class="guide"><p><b>01 / 看碰撞</b>球球自动运动并反弹，球间碰撞守恒动量和动能；冲锋、地形、加速和击退作为外力。普通战斗友军无伤，敌军互伤；速度、质量与属性决定伤害。金色王冠标记国王。</p><p><b>02 / 看成长</b>击败敌人获得经验，升级变大并解锁护盾、重击、吸血或加速。死亡留下金色资源，由触碰它的球收集。</p><p><b>03 / 看兴衰</b>城堡每批消耗180资源招募10名士兵，每秒产出2资源。领地越多招募越快，间隔2.5秒至1.25秒；资源不足180或人口名额不足10时等待，最多保留一次待招募进度。普通球初始为1级、无技能和统一基础属性，之后通过战斗成长。国王死亡会有继任者；城堡被摧毁则全国归入进攻者。</p><p><b>04 / 看统一</b>球在地块内停留占领，多国共处暂停争夺。只剩一个王国时自动收拢剩余领地，随后结算。</p><p><b>爆炸与火圈</b>国王（含继任者）死亡引发半径150、80固定伤害爆炸，可立即连锁。城堡陷落立即归并，原位置先产生半径140、80伤害爆炸，再留下半径110的火圈，持续15秒，每0.5秒灼烧6生命，最后3秒逐渐熄灭。它们伤及敌我球球，不损伤城堡，不授予经验或击杀；山壁阻隔伤害，火圈不阻挡移动。领地以平滑连接区域显示，占领与生产计算不变。</p><p><b>操作</b>拖动地图、滚轮缩放，点击球或城堡查看详情。空格暂停，方向键移动镜头，+ / − 缩放，F 显示全图。手动和自动存档互不覆盖。</p><p>存档保存在当前浏览器与当前网站地址下；请导出JSON备份。高倍速在设备繁忙时可能达不到标称速度，实际速度显示在地图下方。</p></div>`,
   );
   $(".guide").insertAdjacentHTML(
     "afterbegin",
-    "<p><b>城堡出兵与冷兵器</b>各国等量兵力同时从城堡向四周射出，初始与招募球有3秒双倍速冲锋，期间穿过友军和本城堡。每国拥有八种兵种，均分初始兵力；招募优先补充少数兵种。国王低于30%生命时，每次任职可触发一次5秒王者战意，减伤40%、攻击提高25%。范围攻击最多命中四个目标，并分摊伤害。近战自动挥砍，弓弩射箭；征服后球球保留原武器。</p><p><b>地形与配乐</b>沙地、林地减速，冰面滑行，山壁与水域阻挡；群岛通过桥梁交战，箭矢可越过水域。可选择矩形或圆形边界，圆周碰撞反弹，圆外不参与占领；中央湖泊阻挡球，中央竞技场提供开阔交战区。六首地图音乐随战况切换激战曲，暂停时音乐续播位置保留。</p>",
+    "<p><b>城堡出兵与冷兵器</b>新局城堡随机分散，各国等量初始兵力同时向四周射出，每次后续招募射出10球，初始与招募球有3秒双倍速冲锋，期间穿过友军和本城堡。每国拥有八种兵种，均分初始兵力；招募优先补充少数兵种。国王低于30%生命时，每次任职可触发一次5秒王者战意，减伤40%、攻击提高25%。范围攻击最多命中四个目标，并分摊伤害。近战自动挥砍，弓弩射箭；征服后球球保留原武器。</p><p><b>地形与配乐</b>沙地、林地减速，冰面滑行，山壁与水域阻挡；群岛通过桥梁交战，箭矢可越过水域。可选择矩形或圆形边界，圆周碰撞反弹，圆外不参与占领；中央湖泊阻挡球，中央竞技场提供开阔交战区。六首地图音乐随战况切换激战曲，暂停时音乐续播位置保留。</p>",
   );
 };
 const canvas = $("#world");
@@ -601,7 +601,7 @@ function updateUI() {
   $("#kingdom-list").innerHTML = w.kingdoms
     .map(
       (k) =>
-        `<button class="kingdom-card ${k.alive ? "" : "fallen"}" data-kingdom="${k.id}" style="--kingdom:${k.color}"><div class="kingdom-title"><span><i class="dot" style="background:${k.color}"></i>${escape(k.name)}</span><small>${k.alive ? `${((territory[k.id] / total) * 100).toFixed(1)}% 领地` : "已归入他国"}</small></div><div class="territory-track"><span style="width:${(territory[k.id] / total) * 100}%"></span></div><div class="kingdom-metrics"><span>八兵种混编</span><span>◉ ${count[k.id]}</span><span>◇ ${Math.floor(k.resources)}</span><span>⚔ ${k.kills}</span></div><div class="production-info">生产 ${rates[k.id].multiplier.toFixed(2)}× · ${rates[k.id].interval.toFixed(2)}秒 / 球 · ${Math.floor(k.recruitProgress * 100)}%</div><div class="production-track"><span style="width:${k.recruitProgress * 100}%"></span></div><div class="troop-counts">${troopSummary(w, k.id)}</div></button>`,
+        `<button class="kingdom-card ${k.alive ? "" : "fallen"}" data-kingdom="${k.id}" style="--kingdom:${k.color}"><div class="kingdom-title"><span><i class="dot" style="background:${k.color}"></i>${escape(k.name)}</span><small>${k.alive ? `${((territory[k.id] / total) * 100).toFixed(1)}% 领地` : "已归入他国"}</small></div><div class="territory-track"><span style="width:${(territory[k.id] / total) * 100}%"></span></div><div class="kingdom-metrics"><span>八兵种混编</span><span>◉ ${count[k.id]}</span><span>◇ ${Math.floor(k.resources)}</span><span>⚔ ${k.kills}</span></div><div class="production-info">生产 ${rates[k.id].multiplier.toFixed(2)}× · ${rates[k.id].interval.toFixed(2)}秒 / 批（10球） · ${Math.floor(k.recruitProgress * 100)}%</div><div class="production-track"><span style="width:${k.recruitProgress * 100}%"></span></div><div class="troop-counts">${troopSummary(w, k.id)}</div></button>`,
     )
     .join("");
   document.querySelectorAll<HTMLButtonElement>("[data-kingdom]").forEach(

@@ -300,11 +300,6 @@ export function weaponCombat(w: World, dt: number, effects: Effect[]) {
           if (a.weapon === "hammer") {
             b.vx += Math.cos(Math.atan2(b.y - a.y, b.x - a.x)) * 55;
             b.vy += Math.sin(Math.atan2(b.y - a.y, b.x - a.x)) * 55;
-            const speed = Math.hypot(b.vx, b.vy);
-            if (speed > 230) {
-              b.vx *= 230 / speed;
-              b.vy *= 230 / speed;
-            }
           }
         } else hurtCastle(w, a, b, multiplier, effects);
       }

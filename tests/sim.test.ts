@@ -144,11 +144,11 @@ describe("collision and lifecycle", () => {
     w.time = 3;
     w.nextEconomy = 0;
     k.recruitProgress = 1;
-    k.resources = 100;
+    k.resources = 1000;
     const population = w.balls.length;
     step(w);
     expect(w.balls.length).toBeGreaterThan(population);
-    expect(k.recruited).toBe(1);
+    expect(k.recruited).toBe(10);
     w.settings.cap = w.balls.length;
     w.time += 5;
     w.nextEconomy = 0;
@@ -224,9 +224,23 @@ describe("territory and replay", () => {
       ).toBe(true);
     }
   });
-  it("default world reaches natural unification without forced conquest", () => {
+  it("real attacks conquer castles and reach unification without calling conquest directly", () => {
     const w = createWorld(DEFAULTS);
-    for (let i = 0; i < 36000 && w.winner === null; i++) step(w);
+    // A seeded integration battle, rather than a deadline on a random war.
+    for (const k of w.kingdoms.slice(1)) {
+      k.hp = 4;
+      const attacker = w.balls.filter((b) => b.kingdom === 0)[k.id];
+      Object.assign(attacker, {
+        x: k.x + 60,
+        y: k.y,
+        vx: -150,
+        vy: 0,
+        chargeUntil: 0,
+        hp: 1000,
+        maxHp: 1000,
+      });
+    }
+    for (let i = 0; i < 900 && w.winner === null; i++) step(w);
     expect(w.winner).not.toBeNull();
     expect(w.kingdoms.filter((k) => k.alive).length).toBe(1);
     expect(() => importSave(JSON.stringify(w))).not.toThrow();

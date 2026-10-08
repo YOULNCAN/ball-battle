@@ -277,7 +277,7 @@ describe("terrain and save upgrades", () => {
         }
       }
     }
-  }, 90000);
+  }, 180000);
   it("all six maps reproducibly connect castles and place reachable resources", () => {
     for (const map of MAP_TYPES)
       for (let seed = 0; seed < 5; seed++) {

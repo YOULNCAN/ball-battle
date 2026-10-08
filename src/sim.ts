@@ -1,16 +1,16 @@
+import { motionScale, elasticImpulse, physicsDelta } from "./physics";
+import { castlePositions } from "./castles";
 import {
   MAP_TYPES,
   generateTerrain,
   reachableCells,
   cellIndex,
   terrainBlocked,
-  terrainAt,
   moveOnTerrain,
   relocateIfBlocked,
   type MapType,
   type Terrain,
   constrainBoundary,
-  CIRCLE_RADIUS,
 } from "./maps";
 import {
   assignWeapons,
@@ -358,21 +358,15 @@ export function createWorld(settings: Settings = DEFAULTS): World {
       ? MAP_TYPES[Math.floor(random(w) * MAP_TYPES.length)]
       : s.map;
   const weapons = assignWeapons(seedHash(s.seed + "-weapons"), s.kingdoms);
+  const positions = castlePositions(w, () => random(w));
   for (let i = 0; i < s.kingdoms; i++) {
-    const a = (i * Math.PI * 2) / s.kingdoms + random(w) * 0.18;
     w.kingdoms.push({
       id: i,
       name: NAMES[i],
       color: COLORS[i],
       alive: true,
-      x:
-        WIDTH / 2 +
-        Math.cos(a) *
-          (s.shape === "circle" ? CIRCLE_RADIUS * 0.7 : 1100 + random(w) * 160),
-      y:
-        HEIGHT / 2 +
-        Math.sin(a) *
-          (s.shape === "circle" ? CIRCLE_RADIUS * 0.7 : 730 + random(w) * 100),
+      x: positions[i].x,
+      y: positions[i].y,
       hp: 4200,
       maxHp: 4200,
       resources: 70 + Math.floor(random(w) * 80),
@@ -550,20 +544,12 @@ export function collide(w: World, a: Ball, b: Ball, effects: Effect[] = []) {
   if (overlap <= 0) return;
   const nx = d > 0.001 ? dx / d : a.id < b.id ? 1 : -1,
     ny = d > 0.001 ? dy / d : 0;
-  const impact = Math.abs((a.vx - b.vx) * nx + (a.vy - b.vy) * ny);
+  const impact = elasticImpulse(w, a, b, nx, ny);
   const total = a.mass + b.mass;
   a.x -= (nx * (overlap + 0.1) * b.mass) / total;
   a.y -= (ny * (overlap + 0.1) * b.mass) / total;
   b.x += (nx * (overlap + 0.1) * a.mass) / total;
   b.y += (ny * (overlap + 0.1) * a.mass) / total;
-  const approaching = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-  if (approaching > 0) {
-    const impulse = (2 * approaching) / total;
-    a.vx -= impulse * b.mass * nx;
-    a.vy -= impulse * b.mass * ny;
-    b.vx += impulse * a.mass * nx;
-    b.vy += impulse * a.mass * ny;
-  }
   if (a.kingdom === b.kingdom || a.cooldown > w.time || b.cooldown > w.time)
     return;
   const da = damage(w, b, a, impact),
@@ -744,14 +730,24 @@ export function recruit(w: World, dt: number) {
       k.recruitProgress = Math.min(1, accumulated);
       if (
         k.recruitProgress >= 1 - 1e-10 &&
-        k.resources >= 18 &&
-        w.balls.length < w.settings.cap
+        k.resources >= 180 &&
+        w.balls.length + 10 <= w.settings.cap
       ) {
-        k.resources -= 18;
-        const b = spawn(w, k.id, true);
-        k.recruited++;
-        if (!w.balls.some((other) => other.kingdom === k.id && other.king))
-          b.king = true;
+        k.resources -= 180;
+        const offset = random(w) * Math.PI * 2;
+        let hasKing = w.balls.some(
+          (other) => other.kingdom === k.id && other.king && other.hp > 0,
+        );
+        for (let i = 0; i < 10; i++) {
+          const direction =
+            offset + (i * Math.PI * 2) / 10 + (random(w) - 0.5) * 0.08;
+          const b = spawn(w, k.id, true, direction);
+          k.recruited++;
+          if (!hasKing) {
+            b.king = true;
+            hasKing = true;
+          }
+        }
         k.recruitProgress = ready
           ? 0
           : Math.min(1, Math.max(0, accumulated - 1));
@@ -789,123 +785,113 @@ export function step(w: World, dt = STEP): Effect[] {
     if (list) list.push(r);
     else resourceGrid.set(key, [r]);
   }
-  const taken = new Set<number>(),
-    grid = new Map<number, Ball[]>();
-  for (const b of w.balls) {
-    if (b.hp <= 0) continue;
-    kingWarCry(w, b);
-    const speed = Math.hypot(b.vx, b.vy);
-    const ice = terrainAt(w, b.x, b.y) === "ice";
-    const minSpeed = ice ? 25 : b.skills.includes("加速") ? 125 : 75;
-    const maxSpeed = ice || b.skills.includes("加速") ? 230 : 190;
-    if (speed < minSpeed || speed > maxSpeed) {
-      const scale = clamp(speed, minSpeed, maxSpeed) / Math.max(speed, 0.001);
-      if (speed < 0.001) {
-        b.vx = minSpeed;
-        b.vy = 0;
-      } else {
-        b.vx *= scale;
-        b.vy *= scale;
-      }
-    }
-    const terrain = terrainAt(w, b.x, b.y);
-    const slowing = terrain === "sand" ? 0.7 : terrain === "forest" ? 0.65 : 1;
-    const boost =
-      (w.event.kind === "加速" && w.event.until > w.time ? 1.4 : 1) *
-      (b.chargeUntil > w.time ? 2 : 1) *
-      slowing;
-    if (b.x + b.vx * dt * boost < b.r || b.x + b.vx * dt * boost > WIDTH - b.r)
-      b.vx = -b.vx;
-    if (b.y + b.vy * dt * boost < b.r || b.y + b.vy * dt * boost > HEIGHT - b.r)
-      b.vy = -b.vy;
-    moveOnTerrain(w, b, b.vx * dt * boost, b.vy * dt * boost);
-    if (b.x < b.r) {
-      b.x = b.r;
-      b.vx = Math.abs(b.vx);
-    }
-    if (b.x > WIDTH - b.r) {
-      b.x = WIDTH - b.r;
-      b.vx = -Math.abs(b.vx);
-    }
-    if (b.y < b.r) {
-      b.y = b.r;
-      b.vy = Math.abs(b.vy);
-    }
-    if (b.y > HEIGHT - b.r) {
-      b.y = HEIGHT - b.r;
-      b.vy = -Math.abs(b.vy);
-    }
-    for (const o of w.obstacles) reflect(b, o.x, o.y, o.r);
-    for (const k of w.kingdoms)
-      if (k.alive) {
-        if (k.id === b.kingdom && b.chargeUntil > w.time) continue;
-        const speed = Math.hypot(b.vx, b.vy);
-        if (
-          reflect(b, k.x, k.y, 42) &&
-          b.kingdom !== k.id &&
-          b.cooldown <= w.time
-        ) {
-          const hit =
-            Math.max(4, b.attack + speed * Math.sqrt(b.mass) * 0.06) *
-            (b.king && b.warCryUntil > w.time ? 1.25 : 1);
-          k.hp -= hit;
-          w.combatHits++;
-          b.hp -= 5;
-          b.cooldown = w.time + 0.3;
-          if (effects.length < 100)
-            effects.push({
-              x: k.x,
-              y: k.y,
-              text: `−${Math.round(hit)}`,
-              color: k.color,
-              kind: "castle",
-            });
-          if (k.hp <= 0) conquer(w, k, b);
-        }
-      }
-    const gx = Math.floor(b.x / GRID),
-      gy = Math.floor(b.y / GRID);
-    for (let y = gy - 1; y <= gy + 1; y++)
-      for (let x = gx - 1; x <= gx + 1; x++) {
-        for (const r of resourceGrid.get(x + y * GRID_COLS) ?? [])
-          if (!taken.has(r.id) && Math.hypot(r.x - b.x, r.y - b.y) < b.r + 9) {
-            w.kingdoms[b.kingdom].resources += r.value;
-            taken.add(r.id);
-          }
-      }
-    const key = gridKey(b.x, b.y);
-    const bucket = grid.get(key);
-    if (bucket) bucket.push(b);
-    else grid.set(key, [b]);
-  }
-  // Snapshot broad phase: each unordered pair is processed exactly once.
-  for (const [key, bucket] of grid) {
-    for (let i = 0; i < bucket.length; i++)
-      for (let j = i + 1; j < bucket.length; j++)
-        collide(w, bucket[i], bucket[j], effects);
-    const gx = key % GRID_COLS;
-    for (const offset of [1, GRID_COLS - 1, GRID_COLS, GRID_COLS + 1]) {
+  const taken = new Set<number>();
+  let remaining = dt;
+  while (remaining > 1e-12) {
+    const movementDt = physicsDelta(w, remaining);
+    remaining -= movementDt;
+    const grid = new Map<number, Ball[]>();
+    for (const b of w.balls) {
+      if (b.hp <= 0) continue;
+      kingWarCry(w, b);
+      const boost = motionScale(w, b);
       if (
-        (offset === 1 && gx === GRID_COLS - 1) ||
-        (offset === GRID_COLS - 1 && gx === 0) ||
-        (offset === GRID_COLS + 1 && gx === GRID_COLS - 1)
+        b.x + b.vx * movementDt * boost < b.r ||
+        b.x + b.vx * movementDt * boost > WIDTH - b.r
       )
-        continue;
-      const other = grid.get(key + offset);
-      if (other)
-        for (const a of bucket)
-          for (const b of other) collide(w, a, b, effects);
+        b.vx = -b.vx;
+      if (
+        b.y + b.vy * movementDt * boost < b.r ||
+        b.y + b.vy * movementDt * boost > HEIGHT - b.r
+      )
+        b.vy = -b.vy;
+      moveOnTerrain(w, b, b.vx * movementDt * boost, b.vy * movementDt * boost);
+      if (b.x < b.r) {
+        b.x = b.r;
+        b.vx = Math.abs(b.vx);
+      }
+      if (b.x > WIDTH - b.r) {
+        b.x = WIDTH - b.r;
+        b.vx = -Math.abs(b.vx);
+      }
+      if (b.y < b.r) {
+        b.y = b.r;
+        b.vy = Math.abs(b.vy);
+      }
+      if (b.y > HEIGHT - b.r) {
+        b.y = HEIGHT - b.r;
+        b.vy = -Math.abs(b.vy);
+      }
+      for (const o of w.obstacles) reflect(b, o.x, o.y, o.r);
+      for (const k of w.kingdoms)
+        if (k.alive) {
+          if (k.id === b.kingdom && b.chargeUntil > w.time) continue;
+          const speed = Math.hypot(b.vx, b.vy);
+          if (
+            reflect(b, k.x, k.y, 42) &&
+            b.kingdom !== k.id &&
+            b.cooldown <= w.time
+          ) {
+            const hit =
+              Math.max(4, b.attack + speed * Math.sqrt(b.mass) * 0.06) *
+              (b.king && b.warCryUntil > w.time ? 1.25 : 1);
+            k.hp -= hit;
+            w.combatHits++;
+            b.hp -= 5;
+            b.cooldown = w.time + 0.3;
+            if (effects.length < 100)
+              effects.push({
+                x: k.x,
+                y: k.y,
+                text: `−${Math.round(hit)}`,
+                color: k.color,
+                kind: "castle",
+              });
+            if (k.hp <= 0) conquer(w, k, b);
+          }
+        }
+      const gx = Math.floor(b.x / GRID),
+        gy = Math.floor(b.y / GRID);
+      for (let y = gy - 1; y <= gy + 1; y++)
+        for (let x = gx - 1; x <= gx + 1; x++) {
+          for (const r of resourceGrid.get(x + y * GRID_COLS) ?? [])
+            if (
+              !taken.has(r.id) &&
+              Math.hypot(r.x - b.x, r.y - b.y) < b.r + 9
+            ) {
+              w.kingdoms[b.kingdom].resources += r.value;
+              taken.add(r.id);
+            }
+        }
+      const key = gridKey(b.x, b.y);
+      const bucket = grid.get(key);
+      if (bucket) bucket.push(b);
+      else grid.set(key, [b]);
+    }
+    // Snapshot broad phase: each unordered pair is processed exactly once.
+    for (const [key, bucket] of grid) {
+      for (let i = 0; i < bucket.length; i++)
+        for (let j = i + 1; j < bucket.length; j++)
+          collide(w, bucket[i], bucket[j], effects);
+      const gx = key % GRID_COLS;
+      for (const offset of [1, GRID_COLS - 1, GRID_COLS, GRID_COLS + 1]) {
+        if (
+          (offset === 1 && gx === GRID_COLS - 1) ||
+          (offset === GRID_COLS - 1 && gx === 0) ||
+          (offset === GRID_COLS + 1 && gx === GRID_COLS - 1)
+        )
+          continue;
+        const other = grid.get(key + offset);
+        if (other)
+          for (const a of bucket)
+            for (const b of other) collide(w, a, b, effects);
+      }
     }
   }
   weaponCombat(w, dt, effects);
   for (const b of w.balls) {
     b.x = clamp(b.x, b.r, WIDTH - b.r);
     b.y = clamp(b.y, b.r, HEIGHT - b.r);
-    const speed = Math.hypot(b.vx, b.vy);
-    if (speed > 230) {
-      b.vx *= 230 / speed;
-      b.vy *= 230 / speed;
-    }
     constrainBoundary(w, b);
     relocateIfBlocked(w, b);
     constrainBoundary(w, b);

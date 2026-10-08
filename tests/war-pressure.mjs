@@ -121,7 +121,7 @@ try {
   }
   expect(errors).toEqual([]);
   await fs.writeFile(
-    `test-results/v5-${shape}-${layout}-war-pressure.json`,
+    `test-results/v5-batch-${shape}-${layout}-war-pressure.json`,
     JSON.stringify(
       {
         environment: "Headless Chromium, 1440×1000, device scale factor 1",

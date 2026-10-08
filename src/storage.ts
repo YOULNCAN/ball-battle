@@ -124,8 +124,8 @@ export function validateWorld(value: unknown): World {
         !finite(b.r, 1, 24) ||
         !finite(b.x, b.r, WIDTH - b.r) ||
         !finite(b.y, b.r, HEIGHT - b.r) ||
-        !finite(b.vx, -1000, 1000) ||
-        !finite(b.vy, -1000, 1000) ||
+        !finite(b.vx, -1e6, 1e6) ||
+        !finite(b.vy, -1e6, 1e6) ||
         !finite(b.mass, 0.01, 20) ||
         !finite(b.maxHp, 1, 10000) ||
         !finite(b.hp, legacy ? 0.001 : Number.MIN_VALUE, b.maxHp) ||

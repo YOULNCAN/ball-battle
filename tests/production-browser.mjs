@@ -16,7 +16,7 @@ try {
     });
   await expect(page.locator("#toast")).toContainText("旧存档已升级");
   await expect(page.locator(".production-info").first()).toContainText(
-    "秒 / 球",
+    "秒 / 批",
   );
   await page.locator("#save").click();
   await expect(page.locator("#toast")).toContainText("手动存档已保存");
