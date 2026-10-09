@@ -1,3 +1,4 @@
+import { drawArena } from "./arena";
 import { drawTerritory } from "./territory";
 import {
   WIDTH,
@@ -482,13 +483,7 @@ export class Renderer {
     }
     ctx.globalAlpha = 1;
     this.particles = this.particles.filter((p) => p.age < 0.65);
-    if (w.settings.layout === "arena") {
-      ctx.strokeStyle = "#c7ad7180";
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.arc(WIDTH / 2, HEIGHT / 2, 340, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    drawArena(ctx,w);
     ctx.restore();
     if (w.settings.shape === "circle") {
       // A single outer mask avoids applying an antialiased circular clip to every ball and effect.
@@ -529,6 +524,7 @@ export class Renderer {
     ctx.save();
     ctx.scale(sx, sy);
     drawTerritory(ctx, w, 0.55);
+    drawArena(ctx,w);
     ctx.restore();
     ctx.globalAlpha = 1;
     ctx.restore();

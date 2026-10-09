@@ -1,3 +1,4 @@
+import { installArena, type ArenaWall } from "./arena";
 import { motionScale, elasticImpulse, physicsDelta } from "./physics";
 import { castlePositions } from "./castles";
 import {
@@ -154,7 +155,7 @@ export interface Log {
   text: string;
 }
 export interface World {
-  version: 5;
+  version: 6;
   settings: Settings;
   rng: number;
   nextId: number;
@@ -177,6 +178,7 @@ export interface World {
   combatHits: number;
   blasts: Blast[];
   fires: Fire[];
+  arenaWall: ArenaWall | null;
 }
 export interface Effect {
   x: number;
@@ -329,7 +331,7 @@ export function createWorld(settings: Settings = DEFAULTS): World {
   );
   s.population = s.perKingdom * s.kingdoms;
   const w: World = {
-    version: 5,
+    version: 6,
     settings: s,
     rng: seedHash(s.seed),
     nextId: 1,
@@ -352,6 +354,7 @@ export function createWorld(settings: Settings = DEFAULTS): World {
     combatHits: 0,
     blasts: [],
     fires: [],
+    arenaWall: null,
   };
   w.mapType =
     s.map === "random"
@@ -391,6 +394,7 @@ export function createWorld(settings: Settings = DEFAULTS): World {
       w.obstacles.push(o);
   }
   generateTerrain(w, () => random(w));
+  installArena(w);
   for (const k of w.kingdoms) {
     const cx = Math.floor(k.x / TILE),
       cy = Math.floor(k.y / TILE);
@@ -505,7 +509,7 @@ export function reward(w: World, b: Ball) {
     b.r = Math.min(24, b.r + 1.2);
     b.mass = (b.r * b.r) / 60;
     b.maxHp += 20;
-    b.hp = Math.min(b.maxHp, b.hp + 40);
+    if (b.level < 10) b.hp = Math.min(b.maxHp, b.hp + 40);
     b.attack = Math.min(100, b.attack + 4);
     b.defense = Math.min(35, b.defense + 1.5);
     const choices = SKILLS.filter((s) => !b.skills.includes(s));
@@ -558,9 +562,9 @@ export function collide(w: World, a: Ball, b: Ball, effects: Effect[] = []) {
   b.hp -= db;
   w.combatHits += 2;
   a.cooldown = b.cooldown = w.time + 0.3;
-  if (a.skills.includes("吸血") && a.hp > 0)
+  if (a.level < 10 && a.skills.includes("吸血") && a.hp > 0)
     a.hp = Math.min(a.maxHp, a.hp + db * 0.15);
-  if (b.skills.includes("吸血") && b.hp > 0)
+  if (b.level < 10 && b.skills.includes("吸血") && b.hp > 0)
     b.hp = Math.min(b.maxHp, b.hp + da * 0.15);
   if (effects.length < 100) {
     effects.push({
@@ -580,6 +584,7 @@ export function collide(w: World, a: Ball, b: Ball, effects: Effect[] = []) {
   }
   if (b.hp <= 0 && a.hp > 0) reward(w, a);
   if (a.hp <= 0 && b.hp > 0) reward(w, b);
+  if (a.hp <= 0 || b.hp <= 0) resolveRoyalDeaths(w);
 }
 export function conquer(w: World, victim: Kingdom, attacker: Ball) {
   if (!victim.alive || victim.id === attacker.kingdom) return;
@@ -825,6 +830,10 @@ export function step(w: World, dt = STEP): Effect[] {
       for (const o of w.obstacles) reflect(b, o.x, o.y, o.r);
       for (const k of w.kingdoms)
         if (k.alive) {
+          if (k.id === b.kingdom && b.hp > 0 && Math.hypot(b.x-k.x,b.y-k.y) <= 42+b.r) {
+            const healed = Math.min(b.maxHp-b.hp, k.resources*10);
+            b.hp += healed; k.resources = Math.max(0,k.resources-healed/10);
+          }
           if (k.id === b.kingdom && b.chargeUntil > w.time) continue;
           const speed = Math.hypot(b.vx, b.vy);
           if (
@@ -848,6 +857,7 @@ export function step(w: World, dt = STEP): Effect[] {
                 kind: "castle",
               });
             if (k.hp <= 0) conquer(w, k, b);
+            else if (b.hp <= 0) resolveRoyalDeaths(w);
           }
         }
       const gx = Math.floor(b.x / GRID),

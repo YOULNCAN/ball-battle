@@ -388,7 +388,7 @@ describe("terrain and save upgrades", () => {
     for (const c of legacy.cells) delete c.terrain;
     const text = JSON.stringify(legacy),
       migrated = importSave(text);
-    expect(migrated.version).toBe(5);
+    expect(migrated.version).toBe(6);
     expect(migrated.rng).toBe(legacy.rng);
     expect(migrated.time).toBe(legacy.time);
     expect(migrated.balls.map((b) => [b.id, b.x, b.y, b.hp, b.level])).toEqual(

@@ -1,3 +1,4 @@
+import { wallBlocked } from "./arena";
 import { WIDTH, HEIGHT, TILE, COLS, ROWS, type World, type Ball } from "./sim";
 
 export const MAP_TYPES = [
@@ -88,7 +89,7 @@ export function terrainBlocked(
   y: number,
   r: number,
 ): boolean {
-  if (!insideBoundary(w, x, y, r)) return true;
+  if (!insideBoundary(w, x, y, r) || wallBlocked(w,x,y,r)) return true;
   for (
     let cy = Math.max(0, Math.floor((y - r) / TILE));
     cy <= Math.min(ROWS - 1, Math.floor((y + r) / TILE));
@@ -134,7 +135,7 @@ export function moveOnTerrain(w: World, b: Ball, dx: number, dy: number) {
     }
   }
 }
-export function relocateIfBlocked(w: World, b: Ball) {
+export function relocateIfBlocked(w: World, b: Pick<Ball, "x" | "y" | "r">) {
   if (!terrainBlocked(w, b.x, b.y, b.r)) return;
   const start = cellIndex(b.x, b.y),
     cx = start % COLS,

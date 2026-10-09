@@ -144,7 +144,7 @@ try {
   const exportPath = path.join(out, "export.json");
   await download.saveAs(exportPath);
   const exported = JSON.parse(await fs.readFile(exportPath, "utf8"));
-  expect(exported.version).toBe(5);
+  expect(exported.version).toBe(6);
   expect(exported.balls.length).toBeGreaterThan(0);
   await page.locator("#import").click(); // File picker is intercepted by setInputFiles.
   const beforeBad = await diag();

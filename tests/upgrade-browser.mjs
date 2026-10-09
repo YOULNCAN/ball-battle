@@ -61,7 +61,7 @@ try {
       async () =>
         (await records()).find((s) => s.slot === "manual").world.version,
     )
-    .toBe(5);
+    .toBe(6);
   const migrated = (await records()).find((s) => s.slot === "manual").world;
   expect(migrated.rng).toBe(legacy.rng);
   expect(migrated.obstacles).toEqual(legacy.obstacles);
@@ -124,7 +124,7 @@ try {
     await page.locator("#save").click();
     await expect(page.locator("#toast")).toContainText("手动存档已保存");
     const saved = (await records()).find((s) => s.slot === "manual").world;
-    expect(saved.version).toBe(5);
+    expect(saved.version).toBe(6);
     expect(saved.mapType).toBe(map);
     expect(new Set(saved.kingdoms.map((k) => k.weapon)).size).toBe(8);
     expect(

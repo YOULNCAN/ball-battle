@@ -350,14 +350,14 @@ document.querySelectorAll<HTMLButtonElement>("[data-speed]").forEach(
         .forEach((b) => b.classList.toggle("active", b === button));
     }),
 );
-async function persist(slot: Slot) {
+async function persist(slot: Slot, message?: string) {
   if (!world || saving) return;
   saving = true;
   try {
     await saveWorld(world, slot);
     $("#save-status").textContent =
       `${slot === "auto" ? "自动" : "手动"}存档 · ${new Date().toLocaleTimeString("zh-CN", { hour12: false })}`;
-    if (slot === "manual") toast("手动存档已保存；自动存档保存在独立槽位。");
+    if (slot === "manual") toast(message ?? "手动存档已保存；自动存档保存在独立槽位。");
     await refreshSaves();
   } catch (e) {
     toast((e as Error).message);
@@ -390,8 +390,8 @@ async function savesDialog() {
           const w = validateWorld(structuredClone(save.world));
           closeDialog();
           start(w);
-          if ((save.world.version as number) < 5) {
-            toast("旧存档已升级：已支持爆炸、火圈与平滑领地。");
+          if ((save.world.version as number) < 6) {
+            toast("旧存档已升级：已支持满级爆炸、城堡治疗与四入口竞技场。");
             void persist(save.slot);
           } else toast("世界已恢复。");
         } catch (e) {
@@ -425,13 +425,13 @@ $("#file").onchange = async (e) => {
     if (file.size > 12_000_000) throw new Error("存档文件超过12MB限制。");
     const contents = await file.text();
     const w = importSave(contents);
-    const legacy = JSON.parse(contents).version < 5;
+    const legacy = JSON.parse(contents).version < 6;
     closeDialog();
     start(w);
     setPaused(true);
     if (legacy) {
       toast("旧存档已升级，世界已暂停。");
-      void persist("manual");
+      void persist("manual", "旧存档已升级并保存，世界已暂停。");
     } else toast("导入成功，世界已暂停。点击继续开始观察。");
   } catch (error) {
     toast((error as Error).message);
@@ -460,7 +460,7 @@ $("#help").onclick = () => {
   );
   $(".guide").insertAdjacentHTML(
     "afterbegin",
-    "<p><b>城堡出兵与冷兵器</b>新局城堡随机分散，各国等量初始兵力同时向四周射出，每次后续招募射出10球，初始与招募球有3秒双倍速冲锋，期间穿过友军和本城堡。每国拥有八种兵种，均分初始兵力；招募优先补充少数兵种。国王低于30%生命时，每次任职可触发一次5秒王者战意，减伤40%、攻击提高25%。范围攻击最多命中四个目标，并分摊伤害。近战自动挥砍，弓弩射箭；征服后球球保留原武器。</p><p><b>地形与配乐</b>沙地、林地减速，冰面滑行，山壁与水域阻挡；群岛通过桥梁交战，箭矢可越过水域。可选择矩形或圆形边界，圆周碰撞反弹，圆外不参与占领；中央湖泊阻挡球，中央竞技场提供开阔交战区。六首地图音乐随战况切换激战曲，暂停时音乐续播位置保留。</p>",
+    "<p><b>满级与城堡治疗</b>10级球死亡发生半径150、80伤害的敌我范围爆炸，国王任意等级死亡都会爆炸，每球只触发一次。满级禁止升级回血和吸血，但接触本国存活城堡仍可治疗，每恢复10生命消耗1资源，资源不足则部分恢复；不自动返城。</p><p><b>城堡出兵与冷兵器</b>新局城堡随机分散，各国等量初始兵力同时向四周射出，每次后续招募射出10球，初始与招募球有3秒双倍速冲锋，期间穿过友军和本城堡。每国拥有八种兵种，均分初始兵力；招募优先补充少数兵种。国王低于30%生命时，每次任职可触发一次5秒王者战意，减伤40%、攻击提高25%。范围攻击最多命中四个目标，并分摊伤害。近战自动挥砍，弓弩射箭；征服后球球保留原武器。</p><p><b>地形与配乐</b>沙地、林地减速，冰面滑行，山壁与水域阻挡；群岛通过桥梁交战，箭矢可越过水域。可选择矩形或圆形边界，圆周碰撞反弹，圆外不参与占领；中央湖泊阻挡球，中央竞技场由石墙围合，仅东南西北四个入口可通行，墙体阻挡球球、箭矢和爆炸。六首地图音乐随战况切换激战曲，暂停时音乐续播位置保留。</p>",
   );
 };
 const canvas = $("#world");

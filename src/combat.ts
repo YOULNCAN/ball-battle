@@ -1,3 +1,5 @@
+import { resolveRoyalDeaths } from "./hazards";
+import { wallHit } from "./arena";
 import {
   COLS,
   TILE,
@@ -129,7 +131,7 @@ export function blocker(
   nx: number,
   ny: number,
 ): number {
-  let nearest = Infinity;
+  let nearest = wallHit(w,x,y,nx,ny);
   for (const o of w.obstacles) {
     const t = segmentCircle(x, y, nx, ny, o.x, o.y, o.r);
     if (t !== null) nearest = Math.min(nearest, t);
@@ -192,9 +194,12 @@ function hurtBall(
   const amount = damage(w, attacker, target, 0) * multiplier;
   target.hp -= amount;
   showHit(w, target, amount, attacker.kingdom, effects);
-  if (source && source.hp > 0 && attacker.skills.includes("吸血"))
+  if (source && source.hp > 0 && source.level < 10 && attacker.skills.includes("吸血"))
     source.hp = Math.min(source.maxHp, source.hp + amount * 0.15);
-  if (target.hp <= 0) credit(w, source, attacker.kingdom);
+  if (target.hp <= 0) {
+    credit(w, source, attacker.kingdom);
+    resolveRoyalDeaths(w);
+  }
 }
 function hurtCastle(
   w: World,
@@ -295,6 +300,7 @@ export function weaponCombat(w: World, dt: number, effects: Effect[]) {
       const selected = targets.slice(0, 4),
         multiplier = spec.multiplier / Math.sqrt(selected.length || 1);
       for (const b of selected) {
+        if (a.hp <= 0) break;
         if ("kingdom" in b) {
           hurtBall(w, a, b, multiplier, effects);
           if (a.weapon === "hammer") {

@@ -1,5 +1,6 @@
+import { wallHit } from "./arena";
 import { type World, TILE, COLS } from "./sim";
-import { segmentRect } from "./combat";
+import { segmentRect, segmentCircle } from "./combat";
 export interface Blast {
   x: number;
   y: number;
@@ -22,6 +23,7 @@ export function mountainBlocked(
   nx: number,
   ny: number,
 ): boolean {
+  if (wallHit(w,x,y,nx,ny) !== Infinity || w.obstacles.some(o => segmentCircle(x,y,nx,ny,o.x,o.y,o.r) !== null)) return true;
   for (
     let cy = Math.max(0, Math.floor(Math.min(y, ny) / TILE));
     cy <=
@@ -64,10 +66,10 @@ export function resolveRoyalDeaths(w: World) {
     seen = new Set();
     resolved.set(w, seen);
   }
-  // Each pass visits only newly dead crown holders; damage cannot create another castle event.
+  // Each pass visits newly dead kings or max-level soldiers; castles never take blast damage.
   for (;;) {
     const deaths = w.balls
-      .filter((b) => b.king && b.hp <= 0 && !seen!.has(b.id))
+      .filter((b) => (b.king || b.level === 10) && b.hp <= 0 && !seen!.has(b.id))
       .sort((a, b) => a.id - b.id);
     if (!deaths.length) break;
     for (const b of deaths) {

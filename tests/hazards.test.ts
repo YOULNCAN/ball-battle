@@ -130,7 +130,7 @@ describe("neutral explosions and territory display", () => {
     delete raw.blasts;
     delete raw.fires;
     const migrated = importSave(JSON.stringify(raw));
-    expect(migrated.version).toBe(5);
+    expect(migrated.version).toBe(6);
     expect(migrated.balls.find((x) => x.id === b.id)?.level).toBe(3);
     expect(migrated.rng).toBe(w.rng);
     expect(migrated.fires).toEqual([]);

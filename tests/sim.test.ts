@@ -303,7 +303,7 @@ describe("territory and replay", () => {
     expect(() => importSave("bad")).toThrow();
     for (const modify of [
       (w: World) => {
-        w.version = 6 as 5;
+        w.version = 7 as 6;
       },
       (w: World) => {
         w.balls[0].x = Number.NaN;

@@ -1,3 +1,4 @@
+import { ARENA_WALL, installArena, wallBlocked } from "./arena";
 import {
   COLS,
   ROWS,
@@ -32,7 +33,7 @@ export function validateWorld(value: unknown): World {
     Array.isArray(a) && a.length <= max;
   try {
     if (
-      ![1, 2, 3, 4, 5].includes(w.version as number) ||
+      ![1, 2, 3, 4, 5, 6].includes(w.version as number) ||
       !w.settings ||
       !integer(w.rng, 0, 0xffffffff) ||
       !integer(w.nextId, 1) ||
@@ -375,7 +376,7 @@ export function validateWorld(value: unknown): World {
     if ((w.version as number) < 5) {
       w.blasts = [];
       w.fires = [];
-      w.version = 5;
+
     }
     if (!list(w.blasts, 8000) || !list(w.fires, 8)) throw 0;
     for (const b of w.blasts)
@@ -396,6 +397,14 @@ export function validateWorld(value: unknown): World {
         !finite(f.nextTick, f.born, f.until + 0.501)
       )
         throw 0;
+    if ((w.version as number) < 6) {
+      installArena(w);
+      w.version = 6;
+    } else if (w.settings.layout === "arena" ?
+      !w.arenaWall || Object.keys(w.arenaWall).length !== 3 ||
+      w.arenaWall.radius !== ARENA_WALL.radius || w.arenaWall.thickness !== ARENA_WALL.thickness || w.arenaWall.gateWidth !== ARENA_WALL.gateWidth : w.arenaWall !== null) throw 0;
+    if (w.balls.some(b => wallBlocked(w,b.x,b.y,b.r-.01)) ||
+        w.resources.some(r => wallBlocked(w,r.x,r.y,0))) throw 0;
     return w;
   } catch {
     throw new Error(ERROR);

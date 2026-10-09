@@ -143,7 +143,7 @@ describe("territory production and base soldiers", () => {
     const original = structuredClone(fixture);
     const text = JSON.stringify(original),
       next = importSave(text);
-    expect(next.version).toBe(5);
+    expect(next.version).toBe(6);
     expect(next.rng).toBe(original.rng);
     expect(next.cells).toEqual(original.cells);
     expect(next.projectiles).toEqual(original.projectiles);

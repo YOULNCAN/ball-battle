@@ -34,7 +34,7 @@ try {
         };
       }),
   );
-  expect(saved.version).toBe(5);
+  expect(saved.version).toBe(6);
   expect(saved.rng).toBe(old.rng);
   expect(
     saved.balls

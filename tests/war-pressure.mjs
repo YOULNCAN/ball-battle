@@ -121,12 +121,12 @@ try {
   }
   expect(errors).toEqual([]);
   await fs.writeFile(
-    `test-results/v5-batch-${shape}-${layout}-war-pressure.json`,
+    `test-results/v6-arena-${shape}-${layout}-war-pressure.json`,
     JSON.stringify(
       {
         environment: "Headless Chromium, 1440×1000, device scale factor 1",
         shape,
-        version: 5,
+        version: 6,
         layout,
         fixture:
           "2000 high-health low-attack balls, high-health castles; no rendering or attack rules disabled; muted audio; each speed sampled for 4 seconds after deployment warmup",
