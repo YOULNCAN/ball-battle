@@ -1,3 +1,6 @@
+import { drawNatural } from "./natural";
+import { drawScenery } from "./scenery";
+import { drawWeather } from "./weather";
 import { drawArena } from "./arena";
 import { drawTerritory } from "./territory";
 import {
@@ -100,55 +103,8 @@ export class Renderer {
     ctx.fillStyle = "#1d2c32";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
     ctx.save();
-    for (
-      let y = Math.max(0, Math.floor(top / TILE));
-      y < Math.min(ROWS, Math.ceil(bottom / TILE));
-      y++
-    )
-      for (
-        let x = Math.max(0, Math.floor(left / TILE));
-        x < Math.min(COLS, Math.ceil(right / TILE));
-        x++
-      ) {
-        const c = w.cells[x + y * COLS];
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = TERRAIN_COLORS[c.terrain];
-        // Overlap subpixel edges so zooming cannot reveal a false territory grid.
-        ctx.fillRect(x * TILE, y * TILE, TILE + 0.5 / z, TILE + 0.5 / z);
-        if (c.terrain === "bridge") {
-          ctx.strokeStyle = "#c8ae7260";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          for (let n = 12; n < TILE; n += 16) {
-            ctx.moveTo(x * TILE + n, y * TILE + 8);
-            ctx.lineTo(x * TILE + n, (y + 1) * TILE - 8);
-          }
-          ctx.stroke();
-        } else if (c.terrain === "mountain") {
-          ctx.fillStyle = "#63707755";
-          ctx.beginPath();
-          ctx.moveTo(x * TILE + 10, (y + 1) * TILE - 10);
-          ctx.lineTo(x * TILE + 60, y * TILE + 16);
-          ctx.lineTo((x + 1) * TILE - 12, (y + 1) * TILE - 10);
-          ctx.fill();
-        } else if (
-          c.terrain === "water" ||
-          c.terrain === "ice" ||
-          c.terrain === "sand"
-        ) {
-          ctx.strokeStyle = c.terrain === "ice" ? "#c0e8ee25" : "#ebdba619";
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(x * TILE + 22, y * TILE + 45);
-          ctx.quadraticCurveTo(
-            x * TILE + 58,
-            y * TILE + 30,
-            x * TILE + 95,
-            y * TILE + 45,
-          );
-          ctx.stroke();
-        }
-      }
+    drawNatural(ctx, w);
+    drawScenery(ctx, w, z, visible);
     ctx.globalAlpha = 1;
     drawTerritory(ctx, w);
     ctx.strokeStyle = "#687f7b";
@@ -386,11 +342,25 @@ export class Renderer {
           ctx.arc(b.x, b.y, b.r + 4, 0, 7);
           ctx.stroke();
         }
+        if (b.orderUntil > w.time) {
+          ctx.strokeStyle = "#edc875";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r + 4, 0, 7);
+          ctx.stroke();
+        }
+        if (b.king && b.guardUntil > w.time) {
+          ctx.strokeStyle = "#83deed";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r + 8, 0, 7);
+          ctx.stroke();
+        }
         if (b.king && b.warCryUntil > w.time) {
           ctx.strokeStyle = "#ffe09a";
           ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.arc(b.x, b.y, b.r + 8 + Math.sin(w.time * 8) * 2, 0, 7);
+          ctx.arc(b.x, b.y, b.r + 12 + Math.sin(w.time * 8) * 2, 0, 7);
           ctx.stroke();
         }
         ctx.fillStyle = color;
@@ -483,7 +453,8 @@ export class Renderer {
     }
     ctx.globalAlpha = 1;
     this.particles = this.particles.filter((p) => p.age < 0.65);
-    drawArena(ctx,w);
+    drawArena(ctx, w);
+    drawWeather(ctx, w, z);
     ctx.restore();
     if (w.settings.shape === "circle") {
       // A single outer mask avoids applying an antialiased circular clip to every ball and effect.
@@ -510,21 +481,14 @@ export class Renderer {
     ctx.fillStyle = "#142128";
     ctx.fillRect(0, 0, width, height);
     ctx.save();
-    for (let i = 0; i < w.cells.length; i++) {
-      const c = w.cells[i];
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = TERRAIN_COLORS[c.terrain];
-      ctx.fillRect(
-        (i % COLS) * TILE * sx,
-        Math.floor(i / COLS) * TILE * sy,
-        TILE * sx + 1,
-        TILE * sy + 1,
-      );
-    }
+    ctx.save();
+    ctx.scale(sx, sy);
+    drawNatural(ctx, w);
+    ctx.restore();
     ctx.save();
     ctx.scale(sx, sy);
     drawTerritory(ctx, w, 0.55);
-    drawArena(ctx,w);
+    drawArena(ctx, w);
     ctx.restore();
     ctx.globalAlpha = 1;
     ctx.restore();

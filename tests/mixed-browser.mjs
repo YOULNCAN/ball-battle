@@ -37,7 +37,7 @@ try {
   const world = JSON.parse(
     await fs.readFile("test-results/circle-v4.json", "utf8"),
   );
-  expect(world.version).toBe(6);
+  expect(world.version).toBe(7);
   expect(world.settings.shape).toBe("circle");
   await page.reload();
   await page.locator("#continue").click();

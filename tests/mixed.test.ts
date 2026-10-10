@@ -219,7 +219,7 @@ describe("v4 migration and continuation", () => {
     enemy.y = 1200;
     weaponCombat(old, STEP, []);
     const next = importSave(JSON.stringify(old));
-    expect(next.version).toBe(6);
+    expect(next.version).toBe(7);
     expect(next.rng).toBe(old.rng);
     expect(next.projectiles).toEqual(old.projectiles);
     expect(next.history).toEqual(old.history);

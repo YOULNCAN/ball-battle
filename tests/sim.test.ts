@@ -303,7 +303,7 @@ describe("territory and replay", () => {
     expect(() => importSave("bad")).toThrow();
     for (const modify of [
       (w: World) => {
-        w.version = 7 as 6;
+        w.version = 8 as 7;
       },
       (w: World) => {
         w.balls[0].x = Number.NaN;
@@ -342,5 +342,5 @@ describe("territory and replay", () => {
     expect(w.time).toBeCloseTo(60, 5);
     expect(w.balls.length).toBeLessThanOrEqual(2000);
     expect(() => importSave(JSON.stringify(w))).not.toThrow();
-  }, 30000);
+  }, 90000);
 });

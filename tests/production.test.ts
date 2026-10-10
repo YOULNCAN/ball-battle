@@ -143,16 +143,24 @@ describe("territory production and base soldiers", () => {
     const original = structuredClone(fixture);
     const text = JSON.stringify(original),
       next = importSave(text);
-    expect(next.version).toBe(6);
+    expect(next.version).toBe(7);
     expect(next.rng).toBe(original.rng);
     expect(next.cells).toEqual(original.cells);
     expect(next.projectiles).toEqual(original.projectiles);
-    expect(next.resources).toEqual(original.resources);
+    expect(next.resources.map(({ id, value }) => ({ id, value }))).toEqual(
+      original.resources.map(({ id, value }) => ({ id, value })),
+    );
+    for (const r of next.resources) {
+      const old = original.resources.find((p) => p.id === r.id)!;
+      if (r.x !== old.x || r.y !== old.y)
+        expect(terrainBlocked(next, old.x, old.y, 9)).toBe(true);
+      expect(terrainBlocked(next, r.x, r.y, 9)).toBe(false);
+    }
     expect(next.obstacles).toEqual(original.obstacles);
     expect(next.history).toEqual(original.history);
     for (const b of next.balls) {
       const old = original.balls.find((old) => old.id === b.id)!;
-      if (b.king) expect(b).toEqual(old);
+      if (b.king) expect(b).toMatchObject(old);
       else {
         expect(b.level).toBe(1);
         expect(b.xp).toBe(0);

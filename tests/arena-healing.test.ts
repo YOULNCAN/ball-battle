@@ -87,7 +87,7 @@ describe('level 10, paid healing and four arena entrances',()=>{
   const raw=JSON.parse(JSON.stringify(w));raw.version=5;delete raw.arenaWall;
   raw.resources.push({id:raw.nextId++,x:b.x,y:b.y,value:18});
   const a=importSave(JSON.stringify(raw)),copy=importSave(JSON.stringify(raw));
-  expect(a).toEqual(copy);expect(a.rng).toBe(w.rng);expect(a.version).toBe(6);
+  expect(a).toEqual(copy);expect(a.rng).toBe(w.rng);expect(a.version).toBe(7);
   expect(a.balls[0]).toMatchObject({level:10,hp:50,vx:12,vy:-32});expect(terrainBlocked(a,a.balls[0].x,a.balls[0].y,a.balls[0].r)).toBe(false);
   expect(importSave(JSON.stringify(a))).toEqual(a);expect(a.blasts).toEqual([]);
   expect(a.resources[0].value).toBe(18);expect(terrainBlocked(a,a.resources[0].x,a.resources[0].y,9)).toBe(false);

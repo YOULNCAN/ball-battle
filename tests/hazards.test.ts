@@ -15,6 +15,7 @@ import {
 } from "../src/hazards";
 import { importSave } from "../src/storage";
 import { contours } from "../src/territory";
+import { invalidateNatural } from "../src/natural";
 
 function fixture() {
   const w = createWorld({
@@ -72,6 +73,7 @@ describe("neutral explosions and territory display", () => {
     });
     w.cells[Math.floor(640 / TILE) + Math.floor(650 / TILE) * COLS].terrain =
       "mountain";
+    invalidateNatural(w);
     castleExplosion(w, 590, 650);
     expect(w.balls[0].hp).toBe(500);
     w.time = 1.3;
@@ -130,7 +132,7 @@ describe("neutral explosions and territory display", () => {
     delete raw.blasts;
     delete raw.fires;
     const migrated = importSave(JSON.stringify(raw));
-    expect(migrated.version).toBe(6);
+    expect(migrated.version).toBe(7);
     expect(migrated.balls.find((x) => x.id === b.id)?.level).toBe(3);
     expect(migrated.rng).toBe(w.rng);
     expect(migrated.fires).toEqual([]);

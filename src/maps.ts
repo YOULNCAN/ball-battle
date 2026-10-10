@@ -1,4 +1,11 @@
-import { wallBlocked } from "./arena";
+import {
+  naturalTerrainAt,
+  naturalBlocked,
+  naturalRay,
+  naturalNormal,
+  invalidateNatural,
+} from "./natural";
+import { wallBlocked, wallHit } from "./arena";
 import { WIDTH, HEIGHT, TILE, COLS, ROWS, type World, type Ball } from "./sim";
 
 export const MAP_TYPES = [
@@ -81,7 +88,9 @@ export function cellIndex(x: number, y: number): number {
   );
 }
 export function terrainAt(w: World, x: number, y: number): Terrain {
-  return w.cells[cellIndex(x, y)].terrain;
+  return w.terrainBoundaryVersion === 1
+    ? naturalTerrainAt(w, x, y)
+    : w.cells[cellIndex(x, y)].terrain;
 }
 export function terrainBlocked(
   w: World,
@@ -89,7 +98,8 @@ export function terrainBlocked(
   y: number,
   r: number,
 ): boolean {
-  if (!insideBoundary(w, x, y, r) || wallBlocked(w,x,y,r)) return true;
+  if (!insideBoundary(w, x, y, r) || wallBlocked(w, x, y, r)) return true;
+  if (w.terrainBoundaryVersion === 1) return naturalBlocked(w, x, y, r);
   for (
     let cy = Math.max(0, Math.floor((y - r) / TILE));
     cy <= Math.min(ROWS - 1, Math.floor((y + r) / TILE));
@@ -123,6 +133,24 @@ export function moveOnTerrain(w: World, b: Ball, dx: number, dy: number) {
     }
     const x = Math.max(b.r, Math.min(WIDTH - b.r, b.x + dx / count));
     const y = Math.max(b.r, Math.min(HEIGHT - b.r, b.y + dy / count));
+    if (w.terrainBoundaryVersion === 1 && !terrainBlocked(w, x, y, b.r)) {
+      b.x = x;
+      b.y = y;
+      continue;
+    }
+    if (w.terrainBoundaryVersion === 1 && naturalBlocked(w, x, y, b.r)) {
+      const normal = naturalNormal(w, b.x, b.y);
+      if (normal) {
+        const [nx, ny] = normal,
+          dot = b.vx * nx + b.vy * ny,
+          motion = dx * nx + dy * ny;
+        b.vx -= 2 * dot * nx;
+        b.vy -= 2 * dot * ny;
+        dx -= 2 * motion * nx;
+        dy -= 2 * motion * ny;
+        continue;
+      }
+    }
     if (!terrainBlocked(w, x, b.y, b.r)) b.x = x;
     else {
       b.vx = -b.vx;
@@ -153,7 +181,14 @@ export function relocateIfBlocked(w: World, b: Pick<Ball, "x" | "y" | "r">) {
       ) {
         if (Math.abs(x - cx) !== distance && Math.abs(y - cy) !== distance)
           continue;
-        if (!terrainBlocked(w, (x + 0.5) * TILE, (y + 0.5) * TILE, b.r)) {
+        if (
+          !terrainBlocked(w, (x + 0.5) * TILE, (y + 0.5) * TILE, b.r) &&
+          w.obstacles.every(
+            (o) =>
+              Math.hypot((x + 0.5) * TILE - o.x, (y + 0.5) * TILE - o.y) >=
+              o.r + b.r,
+          )
+        ) {
           b.x = (x + 0.5) * TILE;
           b.y = (y + 0.5) * TILE;
           return;
@@ -180,6 +215,13 @@ export function reachableCells(w: World): Set<number> {
         py = (Math.floor(j / COLS) + 0.5) * TILE;
       if (w.obstacles.some((o) => Math.hypot(px - o.x, py - o.y) < o.r + 24))
         continue;
+      if (
+        wallHit(w, (x + 0.5) * TILE, (y + 0.5) * TILE, px, py) !== Infinity ||
+        (w.terrainBoundaryVersion === 1 &&
+          naturalRay(w, (x + 0.5) * TILE, (y + 0.5) * TILE, px, py, true) !==
+            Infinity)
+      )
+        continue;
       seen.add(j);
       queue.push(j);
     }
@@ -189,6 +231,40 @@ export function reachableCells(w: World): Set<number> {
 export function connectedCastles(w: World): boolean {
   const seen = reachableCells(w);
   return w.kingdoms.every((k) => seen.has(cellIndex(k.x, k.y)));
+}
+export function syncNaturalWorld(w: World) {
+  invalidateNatural(w);
+  for (let i = 0; i < w.cells.length; i++) {
+    const x = ((i % COLS) + 0.5) * TILE,
+      y = (Math.floor(i / COLS) + 0.5) * TILE,
+      c = w.cells[i];
+    const dx = Math.abs(x - WIDTH / 2),
+      dy = Math.abs(y - HEIGHT / 2),
+      wall = w.arenaWall;
+    c.blocked =
+      impassable(terrainAt(w, x, y)) ||
+      !insideBoundary(w, x, y) ||
+      (!!wall &&
+        Math.min(dx, dy) > wall.gateWidth / 2 &&
+        Math.abs(Math.hypot(dx, dy) - wall.radius) <
+          wall.thickness / 2 + TILE / 2);
+    if (c.blocked) {
+      c.owner = -1;
+      c.claimant = -1;
+      c.progress = 0;
+    } else if (w.winner !== null) {
+      c.owner = w.winner;
+      c.claimant = w.winner;
+      c.progress = 1;
+    }
+  }
+  for (const b of w.balls) relocateIfBlocked(w, b);
+  for (const r of w.resources) {
+    const p = { x: r.x, y: r.y, r: 9 };
+    relocateIfBlocked(w, p);
+    r.x = p.x;
+    r.y = p.y;
+  }
 }
 export function generateTerrain(w: World, rng: () => number) {
   const map = w.mapType;

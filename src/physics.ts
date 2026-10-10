@@ -1,3 +1,4 @@
+import { raining } from "./weather";
 import { type World, type Ball } from "./sim";
 import { terrainAt } from "./maps";
 
@@ -5,6 +6,7 @@ import { terrainAt } from "./maps";
 export function motionScale(w: World, b: Ball): number {
   const terrain = terrainAt(w, b.x, b.y);
   return (
+    (raining(w, b.x, b.y) ? 0.6 : 1) *
     (terrain === "sand" ? 0.7 : terrain === "forest" ? 0.65 : 1) *
     (w.event.kind === "加速" && w.event.until > w.time ? 1.4 : 1) *
     (b.chargeUntil > w.time ? 2 : 1) *

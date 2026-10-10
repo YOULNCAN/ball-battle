@@ -22,7 +22,7 @@ try {
  await expect(page.locator('#toast')).toContainText('升级');
  await page.locator('#single').click();await page.locator('#save').click();
  await expect(page.locator('#toast')).toContainText('手动存档已保存');
- const next=await saved();expect(next.version).toBe(6);expect(next.arenaWall).toEqual({radius:380,thickness:24,gateWidth:160});
+ const next=await saved();expect(next.version).toBe(7);expect(next.arenaWall).toEqual({radius:380,thickness:24,gateWidth:160});
  expect(next.balls.find(b=>b.id===fixture.id).hp).toBe(52.5);expect(next.kingdoms[0].resources).toBe(0);
  const text=JSON.stringify(next);await page.locator('#file').setInputFiles({name:'bad.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...next,arenaWall:{...next.arenaWall,gateWidth:500}}))});
  await expect(page.locator('#toast')).toContainText('损坏');

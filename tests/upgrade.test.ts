@@ -315,7 +315,7 @@ describe("terrain and save upgrades", () => {
     a.vx = 100;
     moveOnTerrain(w, a, 30, 0);
     expect(a.vx).toBeLessThan(0);
-    expect(a.x).toBeLessThan(1080);
+    expect(terrainBlocked(w, a.x, a.y, a.r)).toBe(false);
     w.cells[i].terrain = "bridge";
     w.cells[i].blocked = false;
     a.x = 1070;
@@ -388,7 +388,7 @@ describe("terrain and save upgrades", () => {
     for (const c of legacy.cells) delete c.terrain;
     const text = JSON.stringify(legacy),
       migrated = importSave(text);
-    expect(migrated.version).toBe(6);
+    expect(migrated.version).toBe(7);
     expect(migrated.rng).toBe(legacy.rng);
     expect(migrated.time).toBe(legacy.time);
     expect(migrated.balls.map((b) => [b.id, b.x, b.y, b.hp, b.level])).toEqual(

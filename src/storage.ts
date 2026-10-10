@@ -11,7 +11,13 @@ import {
   seedHash,
 } from "./sim";
 import { assignWeapons, balancedArmy, WEAPON_TYPES } from "./weapons";
-import { MAP_TYPES, insideBoundary } from "./maps";
+import {
+  MAP_TYPES,
+  insideBoundary,
+  syncNaturalWorld,
+  terrainBlocked,
+} from "./maps";
+import { initialWeather, clearWeather } from "./weather";
 export type Slot = "manual" | "auto";
 export interface Save {
   slot: Slot;
@@ -25,6 +31,8 @@ export function validateWorld(value: unknown): World {
   const legacy = (w.version as number) === 1;
   const upgrading = (w.version as number) < 3;
   const resetting = (w.version as number) < 4;
+  const modern = (w.version as number) === 7;
+  if (!modern) w.terrainBoundaryVersion = 0;
   const finite = (n: unknown, lo = 0, hi = 1e12): n is number =>
     typeof n === "number" && Number.isFinite(n) && n >= lo && n <= hi;
   const integer = (n: unknown, lo = 0, hi = 1e12) =>
@@ -33,7 +41,7 @@ export function validateWorld(value: unknown): World {
     Array.isArray(a) && a.length <= max;
   try {
     if (
-      ![1, 2, 3, 4, 5, 6].includes(w.version as number) ||
+      ![1, 2, 3, 4, 5, 6, 7].includes(w.version as number) ||
       !w.settings ||
       !integer(w.rng, 0, 0xffffffff) ||
       !integer(w.nextId, 1) ||
@@ -92,6 +100,7 @@ export function validateWorld(value: unknown): World {
       ids.add(n);
     };
     for (const [i, k] of w.kingdoms.entries()) {
+      if (modern && !finite(k.ceasefireUntil, 0, w.time + 10.001)) throw 0;
       if (!upgrading && !insideBoundary(w, k.x, k.y, 42)) throw 0;
       if (
         !k ||
@@ -118,6 +127,14 @@ export function validateWorld(value: unknown): World {
     }
     if (!w.kingdoms.some((k) => k.alive)) throw 0;
     for (const b of w.balls) {
+      if (
+        modern &&
+        (!finite(b.orderUntil, 0, w.time + 6.001) ||
+          !finite(b.nextOrder, 0, w.time + 20.001) ||
+          !finite(b.guardUntil, 0, w.time + 4.001) ||
+          !finite(b.nextGuard, 0, w.time + 25.001))
+      )
+        throw 0;
       if (
         !b ||
         !faction(b.kingdom) ||
@@ -287,7 +304,7 @@ export function validateWorld(value: unknown): World {
           !finite(p.vy, -800, 800) ||
           Math.hypot(p.vx, p.vy) < 1 ||
           !finite(p.remaining, Number.MIN_VALUE, 500) ||
-          !finite(p.attack, 1, upgrading ? 100 : 125) ||
+          !finite(p.attack, 1, upgrading ? 100 : modern ? 144 : 125) ||
           typeof p.heavy !== "boolean" ||
           typeof p.vamp !== "boolean" ||
           !["bow", "crossbow"].includes(p.weapon)
@@ -376,7 +393,6 @@ export function validateWorld(value: unknown): World {
     if ((w.version as number) < 5) {
       w.blasts = [];
       w.fires = [];
-
     }
     if (!list(w.blasts, 8000) || !list(w.fires, 8)) throw 0;
     for (const b of w.blasts)
@@ -388,6 +404,16 @@ export function validateWorld(value: unknown): World {
         (b.source !== null && !integer(b.source, 1, w.nextId - 1))
       )
         throw 0;
+    if (
+      modern &&
+      w.blasts.some(
+        (b) =>
+          b.lightning !== undefined &&
+          (typeof b.lightning !== "boolean" ||
+            (b.lightning && (b.source !== null || b.radius !== 150))),
+      )
+    )
+      throw 0;
     for (const f of w.fires)
       if (
         !finite(f.x, 0, WIDTH) ||
@@ -399,12 +425,97 @@ export function validateWorld(value: unknown): World {
         throw 0;
     if ((w.version as number) < 6) {
       installArena(w);
-      w.version = 6;
-    } else if (w.settings.layout === "arena" ?
-      !w.arenaWall || Object.keys(w.arenaWall).length !== 3 ||
-      w.arenaWall.radius !== ARENA_WALL.radius || w.arenaWall.thickness !== ARENA_WALL.thickness || w.arenaWall.gateWidth !== ARENA_WALL.gateWidth : w.arenaWall !== null) throw 0;
-    if (w.balls.some(b => wallBlocked(w,b.x,b.y,b.r-.01)) ||
-        w.resources.some(r => wallBlocked(w,r.x,r.y,0))) throw 0;
+    } else if (
+      w.settings.layout === "arena"
+        ? !w.arenaWall ||
+          Object.keys(w.arenaWall).length !== 3 ||
+          w.arenaWall.radius !== ARENA_WALL.radius ||
+          w.arenaWall.thickness !== ARENA_WALL.thickness ||
+          w.arenaWall.gateWidth !== ARENA_WALL.gateWidth
+        : w.arenaWall !== null
+    )
+      throw 0;
+    if (
+      w.balls.some((b) => wallBlocked(w, b.x, b.y, b.r - 0.01)) ||
+      w.resources.some((r) => wallBlocked(w, r.x, r.y, 0))
+    )
+      throw 0;
+    if (!modern) {
+      w.terrainBoundaryVersion = 1;
+      w.weather = initialWeather(w.settings.seed, w.time);
+      for (const k of w.kingdoms) k.ceasefireUntil = 0;
+      for (const b of w.balls)
+        Object.assign(b, {
+          orderUntil: 0,
+          nextOrder: 0,
+          guardUntil: 0,
+          nextGuard: 0,
+        });
+      syncNaturalWorld(w);
+      w.version = 7;
+    } else {
+      if (
+        w.terrainBoundaryVersion !== 1 ||
+        !w.weather ||
+        !finite(w.weather.nextRain) ||
+        !finite(w.weather.nextStorm) ||
+        !list(w.weather.strikes, 6)
+      )
+        throw 0;
+      if (
+        w.weather.rain === undefined ||
+        w.weather.storm === undefined ||
+        (w.weather.rain !== null && typeof w.weather.rain !== "object") ||
+        (w.weather.storm !== null && typeof w.weather.storm !== "object")
+      )
+        throw 0;
+      const ground = (p: { x: number; y: number }) =>
+        !terrainBlocked(w, p.x, p.y, 3) &&
+        w.obstacles.every((o) => Math.hypot(p.x - o.x, p.y - o.y) > o.r + 3);
+      for (const [zone, duration] of [
+        [w.weather.rain, 15],
+        [w.weather.storm, 12],
+      ] as const)
+        if (zone) {
+          if (
+            !finite(zone.x, 3, WIDTH - 3) ||
+            !finite(zone.y, 3, HEIGHT - 3) ||
+            zone.radius !== 450 ||
+            !finite(zone.born, 0, w.time) ||
+            !finite(
+              zone.until,
+              zone.born + duration - 0.001,
+              zone.born + duration + 0.001,
+            ) ||
+            !ground(zone)
+          )
+            throw 0;
+        }
+      const storm = w.weather.storm;
+      if (
+        storm &&
+        (!integer(storm.warnings, 0, 6) ||
+          !finite(storm.nextWarning) ||
+          Math.abs(storm.nextWarning - storm.born - 1 - storm.warnings * 2) >
+            0.001)
+      )
+        throw 0;
+      for (const strike of w.weather.strikes)
+        if (
+          !finite(strike.x, 3, WIDTH - 3) ||
+          !finite(strike.y, 3, HEIGHT - 3) ||
+          !finite(strike.warned, 0, w.time + 1e-9) ||
+          !finite(
+            strike.at,
+            Math.max(w.time, strike.warned + 0.999),
+            strike.warned + 1.001,
+          ) ||
+          !ground(strike)
+        )
+          throw 0;
+      if (w.balls.some((b) => terrainBlocked(w, b.x, b.y, b.r - 0.01))) throw 0;
+    }
+    if (!w.settings.events) clearWeather(w);
     return w;
   } catch {
     throw new Error(ERROR);

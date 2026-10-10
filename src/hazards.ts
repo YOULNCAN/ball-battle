@@ -1,3 +1,4 @@
+import { naturalRay } from "./natural";
 import { wallHit } from "./arena";
 import { type World, TILE, COLS } from "./sim";
 import { segmentRect, segmentCircle } from "./combat";
@@ -7,6 +8,7 @@ export interface Blast {
   radius: number;
   born: number;
   source: number | null;
+  lightning?: boolean;
 }
 export interface Fire {
   x: number;
@@ -23,7 +25,13 @@ export function mountainBlocked(
   nx: number,
   ny: number,
 ): boolean {
-  if (wallHit(w,x,y,nx,ny) !== Infinity || w.obstacles.some(o => segmentCircle(x,y,nx,ny,o.x,o.y,o.r) !== null)) return true;
+  if (
+    wallHit(w, x, y, nx, ny) !== Infinity ||
+    w.obstacles.some((o) => segmentCircle(x, y, nx, ny, o.x, o.y, o.r) !== null)
+  )
+    return true;
+  if (w.terrainBoundaryVersion === 1)
+    return naturalRay(w, x, y, nx, ny) !== Infinity;
   for (
     let cy = Math.max(0, Math.floor(Math.min(y, ny) / TILE));
     cy <=
@@ -69,11 +77,14 @@ export function resolveRoyalDeaths(w: World) {
   // Each pass visits newly dead kings or max-level soldiers; castles never take blast damage.
   for (;;) {
     const deaths = w.balls
-      .filter((b) => (b.king || b.level === 10) && b.hp <= 0 && !seen!.has(b.id))
+      .filter(
+        (b) => (b.king || b.level === 10) && b.hp <= 0 && !seen!.has(b.id),
+      )
       .sort((a, b) => a.id - b.id);
     if (!deaths.length) break;
     for (const b of deaths) {
       seen.add(b.id);
+      if (b.king) w.kingdoms[b.kingdom].ceasefireUntil = w.time + 10;
       w.blasts.push({
         x: b.x,
         y: b.y,

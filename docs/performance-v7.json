@@ -1,0 +1,335 @@
+{
+  "date": "2026-10-10",
+  "runtime": "Windows, Node.js 24.14.0, headless Chromium, viewport 1440x1000",
+  "reports": [
+    {
+      "environment": "Headless Chromium, 1440×1000, device scale factor 1",
+      "shape": "rectangle",
+      "version": 7,
+      "rain": true,
+      "layout": "normal",
+      "fixture": "2000 high-health low-attack balls, high-health castles; no rendering or attack rules disabled; muted audio; each speed sampled for 4 seconds after deployment warmup",
+      "measures": [
+        {
+          "scenario": "grassland",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.2101948941104,
+          "minimumSampleFPS": 59.470710674970604,
+          "actualSpeed": 0.9918195380253012,
+          "maximumArrows": 41,
+          "maximumEffects": 144
+        },
+        {
+          "scenario": "grassland",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 55.285196331380874,
+          "minimumSampleFPS": 50.565139797711424,
+          "actualSpeed": 1.9833496571988183,
+          "maximumArrows": 41,
+          "maximumEffects": 215
+        },
+        {
+          "scenario": "grassland",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 45.61542900405018,
+          "minimumSampleFPS": 42,
+          "actualSpeed": 2.918398956550083,
+          "maximumArrows": 29,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "desert",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.125811136916994,
+          "minimumSampleFPS": 59.75119992167048,
+          "actualSpeed": 0.9922099220992175,
+          "maximumArrows": 30,
+          "maximumEffects": 79
+        },
+        {
+          "scenario": "desert",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 59.38211332575075,
+          "minimumSampleFPS": 57.85448127079515,
+          "actualSpeed": 1.9894922328601796,
+          "maximumArrows": 30,
+          "maximumEffects": 121
+        },
+        {
+          "scenario": "desert",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 45.953214195345204,
+          "minimumSampleFPS": 44.519192718605886,
+          "actualSpeed": 2.916747462994877,
+          "maximumArrows": 22,
+          "maximumEffects": 152
+        },
+        {
+          "scenario": "snow",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 59.88794826993796,
+          "minimumSampleFPS": 57.971014492753625,
+          "actualSpeed": 0.993056742611175,
+          "maximumArrows": 28,
+          "maximumEffects": 113
+        },
+        {
+          "scenario": "snow",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 52.19881698231474,
+          "minimumSampleFPS": 50.2760252365746,
+          "actualSpeed": 1.9667121773618517,
+          "maximumArrows": 31,
+          "maximumEffects": 167
+        },
+        {
+          "scenario": "snow",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 48.0865378874201,
+          "minimumSampleFPS": 47.31861198736433,
+          "actualSpeed": 2.045836479213111,
+          "maximumArrows": 31,
+          "maximumEffects": 189
+        },
+        {
+          "scenario": "forest",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.022735341548994,
+          "minimumSampleFPS": 59.44714158328651,
+          "actualSpeed": 0.9919183049577818,
+          "maximumArrows": 42,
+          "maximumEffects": 141
+        },
+        {
+          "scenario": "forest",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 48.55178416999446,
+          "minimumSampleFPS": 45.57614188051966,
+          "actualSpeed": 1.8935220325976956,
+          "maximumArrows": 35,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "forest",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 43.76491348934395,
+          "minimumSampleFPS": 42.20651747154285,
+          "actualSpeed": 1.7980100946578899,
+          "maximumArrows": 34,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "valley",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 57.51499314041479,
+          "minimumSampleFPS": 52.915237628613426,
+          "actualSpeed": 0.9972757345786631,
+          "maximumArrows": 54,
+          "maximumEffects": 162
+        },
+        {
+          "scenario": "valley",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 44.52791425108251,
+          "minimumSampleFPS": 42.506919731095536,
+          "actualSpeed": 1.9696414764171988,
+          "maximumArrows": 44,
+          "maximumEffects": 191
+        },
+        {
+          "scenario": "valley",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 42.21169586172918,
+          "minimumSampleFPS": 40.08211946429015,
+          "actualSpeed": 2.362338959109288,
+          "maximumArrows": 26,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "islands",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 59.99665646882854,
+          "minimumSampleFPS": 59.50638962054645,
+          "actualSpeed": 0.9981740718198384,
+          "maximumArrows": 63,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "islands",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 45.86763601641189,
+          "minimumSampleFPS": 43.12457120455556,
+          "actualSpeed": 1.8066188682302367,
+          "maximumArrows": 53,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "islands",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 46.89777824402128,
+          "minimumSampleFPS": 45.72564612326044,
+          "actualSpeed": 1.880125773930992,
+          "maximumArrows": 46,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "dense-melee",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.18234794929894,
+          "minimumSampleFPS": 59.698571148909295,
+          "actualSpeed": 0.9923075661400298,
+          "maximumArrows": 0,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "dense-melee",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 55.509402626591466,
+          "minimumSampleFPS": 50.49005049002256,
+          "actualSpeed": 1.9893410614729972,
+          "maximumArrows": 0,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "dense-melee",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 43.78699558982647,
+          "minimumSampleFPS": 41.58004158001858,
+          "actualSpeed": 2.828361414343038,
+          "maximumArrows": 0,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "arrow-rain",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.475654747857945,
+          "minimumSampleFPS": 59.640203363327245,
+          "actualSpeed": 0.9908692625803512,
+          "maximumArrows": 90,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "arrow-rain",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 60.422799067235296,
+          "minimumSampleFPS": 59.98200539839166,
+          "actualSpeed": 1.996743017536596,
+          "maximumArrows": 78,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "arrow-rain",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 54.67022520799726,
+          "minimumSampleFPS": 50.47505938240419,
+          "actualSpeed": 3.895585275014044,
+          "maximumArrows": 64,
+          "maximumEffects": 220
+        }
+      ],
+      "errors": []
+    },
+    {
+      "environment": "Headless Chromium, 1440×1000, device scale factor 1",
+      "shape": "circle",
+      "version": 7,
+      "rain": true,
+      "layout": "arena",
+      "fixture": "2000 high-health low-attack balls, high-health castles; no rendering or attack rules disabled; muted audio; each speed sampled for 4 seconds after deployment warmup",
+      "measures": [
+        {
+          "scenario": "valley",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.12977280000424,
+          "minimumSampleFPS": 59.52961842489403,
+          "actualSpeed": 0.9912896515861951,
+          "maximumArrows": 101,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "valley",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 46.630753106328235,
+          "minimumSampleFPS": 41.845172860408695,
+          "actualSpeed": 1.9950327755384487,
+          "maximumArrows": 60,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "valley",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 43.18003775610612,
+          "minimumSampleFPS": 41.5307030554808,
+          "actualSpeed": 2.2340173992445846,
+          "maximumArrows": 62,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "islands",
+          "speed": 1,
+          "population": 2000,
+          "averageFPS": 60.32372662186276,
+          "minimumSampleFPS": 59.880239520958085,
+          "actualSpeed": 0.9957070336093715,
+          "maximumArrows": 101,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "islands",
+          "speed": 2,
+          "population": 2000,
+          "averageFPS": 47.541592272208895,
+          "minimumSampleFPS": 45.6575682382134,
+          "actualSpeed": 1.921088834077981,
+          "maximumArrows": 75,
+          "maximumEffects": 220
+        },
+        {
+          "scenario": "islands",
+          "speed": 4,
+          "population": 2000,
+          "averageFPS": 47.932758708392655,
+          "minimumSampleFPS": 46.314544737887886,
+          "actualSpeed": 1.9165055986430317,
+          "maximumArrows": 92,
+          "maximumEffects": 220
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "chain": {
+    "singleStepMS": 36.5,
+    "population": 1,
+    "blasts": 1999,
+    "errors": [],
+    "passed": true
+  }
+}

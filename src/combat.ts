@@ -1,3 +1,5 @@
+import { ceased, orderMultiplier } from "./royal";
+import { naturalRay } from "./natural";
 import { resolveRoyalDeaths } from "./hazards";
 import { wallHit } from "./arena";
 import {
@@ -131,11 +133,13 @@ export function blocker(
   nx: number,
   ny: number,
 ): number {
-  let nearest = wallHit(w,x,y,nx,ny);
+  let nearest = wallHit(w, x, y, nx, ny);
   for (const o of w.obstacles) {
     const t = segmentCircle(x, y, nx, ny, o.x, o.y, o.r);
     if (t !== null) nearest = Math.min(nearest, t);
   }
+  if (w.terrainBoundaryVersion === 1)
+    return Math.min(nearest, naturalRay(w, x, y, nx, ny));
   for (
     let cy = Math.max(0, Math.floor(Math.min(y, ny) / TILE));
     cy <= Math.min(HEIGHT / TILE - 1, Math.floor(Math.max(y, ny) / TILE));
@@ -190,11 +194,21 @@ function hurtBall(
   effects: Effect[],
   source: Ball | undefined = attacker,
 ) {
-  if (target.hp <= 0 || target.kingdom === attacker.kingdom) return;
+  if (
+    target.hp <= 0 ||
+    target.kingdom === attacker.kingdom ||
+    ceased(w, attacker.kingdom)
+  )
+    return;
   const amount = damage(w, attacker, target, 0) * multiplier;
   target.hp -= amount;
   showHit(w, target, amount, attacker.kingdom, effects);
-  if (source && source.hp > 0 && source.level < 10 && attacker.skills.includes("吸血"))
+  if (
+    source &&
+    source.hp > 0 &&
+    source.level < 10 &&
+    attacker.skills.includes("吸血")
+  )
     source.hp = Math.min(source.maxHp, source.hp + amount * 0.15);
   if (target.hp <= 0) {
     credit(w, source, attacker.kingdom);
@@ -215,7 +229,8 @@ function hurtCastle(
     attacker.attack *
       multiplier *
       (attacker.skills.includes("重击") ? 1.25 : 1) *
-      (attacker.king && attacker.warCryUntil > w.time ? 1.25 : 1),
+      (attacker.king && attacker.warCryUntil > w.time ? 1.25 : 1) *
+      orderMultiplier(w, attacker),
   );
   target.hp -= amount;
   showHit(w, target, amount, attacker.kingdom, effects);
@@ -229,7 +244,8 @@ export function weaponCombat(w: World, dt: number, effects: Effect[]) {
     let target: Ball | Kingdom | undefined,
       distance = Infinity;
     for (const b of grid.query(a.x, a.y, spec.range + a.r + 24, a.kingdom)) {
-      if (b.hp <= 0 || b.kingdom === a.kingdom) continue;
+      if (b.hp <= 0 || b.kingdom === a.kingdom || ceased(w, a.kingdom))
+        continue;
       const d = Math.hypot(b.x - a.x, b.y - a.y) - b.r - a.r;
       if (
         d <= spec.range &&
@@ -271,7 +287,10 @@ export function weaponCombat(w: World, dt: number, effects: Effect[]) {
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
         remaining: spec.range + 60,
-        attack: a.attack * (a.king && a.warCryUntil > w.time ? 1.25 : 1),
+        attack:
+          a.attack *
+          (a.king && a.warCryUntil > w.time ? 1.25 : 1) *
+          orderMultiplier(w, a),
         heavy: a.skills.includes("重击"),
         vamp: a.skills.includes("吸血"),
         weapon: a.weapon,
@@ -288,7 +307,12 @@ export function weaponCombat(w: World, dt: number, effects: Effect[]) {
         blocker(w, a.x, a.y, t.x, t.y) === Infinity;
       const targets: (Ball | Kingdom)[] = [];
       for (const b of grid.query(a.x, a.y, spec.range + a.r + 24, a.kingdom))
-        if (b.hp > 0 && b.kingdom !== a.kingdom && inArc(b, b.r))
+        if (
+          !ceased(w, a.kingdom) &&
+          b.hp > 0 &&
+          b.kingdom !== a.kingdom &&
+          inArc(b, b.r)
+        )
           targets.push(b);
       for (const k of w.kingdoms)
         if (k.alive && k.id !== a.kingdom && inArc(k, 42)) targets.push(k);
@@ -355,6 +379,7 @@ export function weaponCombat(w: World, dt: number, effects: Effect[]) {
         kingdom: p.kingdom,
         king: false,
         attack: p.attack,
+        orderUntil: 0,
         weapon: p.weapon,
         skills: [...(p.heavy ? ["重击"] : []), ...(p.vamp ? ["吸血"] : [])],
       } as Ball;

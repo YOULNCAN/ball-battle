@@ -7,6 +7,7 @@ const errors = [],
 const shape = process.env.ORB_SHAPE === "circle" ? "circle" : "rectangle";
 const layout = process.env.ORB_LAYOUT || "normal";
 const selected = process.env.ORB_SCENARIOS?.split(",");
+const rain = process.env.ORB_WEATHER === "rain";
 page.on("pageerror", (error) => errors.push(error.message));
 try {
   await page.goto(process.env.ORB_URL || "http://127.0.0.1:5173");
@@ -82,8 +83,52 @@ try {
       buffer: Buffer.from(JSON.stringify(fixture)),
     });
     await expect(page.locator("#game")).toBeVisible();
-    await page.locator("#pause").click();
     for (const speed of [1, 2, 4]) {
+      if (rain) {
+        const wet = structuredClone(fixture);
+        wet.settings.events = true;
+        wet.nextEvent = 1e9;
+        const centre = wet.cells
+          .map((c, i) => ({
+            c,
+            x: ((i % 30) + 0.5) * 120,
+            y: (Math.floor(i / 30) + 0.5) * 120,
+          }))
+          .filter(
+            (p) =>
+              !p.c.blocked &&
+              wet.obstacles.every(
+                (o) => Math.hypot(p.x - o.x, p.y - o.y) > o.r + 3,
+              ),
+          )
+          .sort(
+            (a, b) =>
+              (a.x - 1800) ** 2 +
+              (a.y - 1200) ** 2 -
+              (b.x - 1800) ** 2 -
+              (b.y - 1200) ** 2,
+          )[0];
+        wet.weather = {
+          nextRain: 1e9,
+          nextStorm: 1e9,
+          storm: null,
+          strikes: [],
+          rain: {
+            x: centre.x,
+            y: centre.y,
+            radius: 450,
+            born: wet.time,
+            until: wet.time + 15,
+          },
+        };
+        await page.locator("#file").setInputFiles({
+          name: "rain-pressure.json",
+          mimeType: "application/json",
+          buffer: Buffer.from(JSON.stringify(wet)),
+        });
+        await expect(page.locator("#game")).toBeVisible();
+        await page.locator("#pause").click();
+      } else if (speed === 1) await page.locator("#pause").click();
       await page.locator(`[data-speed="${speed}"]`).click();
       const start = await page.evaluate(() => ({
         ...window.__orbDiagnostics,
@@ -121,12 +166,13 @@ try {
   }
   expect(errors).toEqual([]);
   await fs.writeFile(
-    `test-results/v6-arena-${shape}-${layout}-war-pressure.json`,
+    `test-results/v7-${rain ? "rain" : "clear"}-${shape}-${layout}-war-pressure.json`,
     JSON.stringify(
       {
         environment: "Headless Chromium, 1440×1000, device scale factor 1",
         shape,
-        version: 6,
+        version: 7,
+        rain,
         layout,
         fixture:
           "2000 high-health low-attack balls, high-health castles; no rendering or attack rules disabled; muted audio; each speed sampled for 4 seconds after deployment warmup",

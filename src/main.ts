@@ -1,4 +1,5 @@
 import "./style.css";
+import { clearWeather } from "./weather";
 import {
   createWorld,
   DEFAULTS,
@@ -238,7 +239,7 @@ function settingsDialog(newWorld: boolean) {
             )}</select></label></div><div class="form-row"><label>王国数量<input name="kingdoms" type="number" min="2" max="8" step="1" value="${s.kingdoms}" required></label><label>每国初始兵力<input name="perKingdom" type="number" min="8" max="2000" step="1" value="${s.perKingdom}" required></label></div><p class="population-total">初始总兵力：<strong id="initial-total"></strong> 球 · 各国同时从城堡出兵</p><p id="initial-troops" class="population-total"></p><label>全图人口上限<input name="cap" type="number" min="100" max="4000" step="1" value="${s.cap}" required><small>默认2000；较高上限需要更好的设备性能。</small></label>`
         : ""
     }
-    <label>画面细节<select name="quality"><option value="high" ${s.quality === "high" ? "selected" : ""}>精致 · 表情与粒子</option><option value="low" ${s.quality === "low" ? "selected" : ""}>简洁 · 优先性能</option></select></label><div class="form-row"><label>音效音量 <span id="volume-value">${Math.round(s.volume * 100)}%</span><input name="volume" type="range" min="0" max="100" value="${s.volume * 100}"></label><label>音乐音量 <span id="music-volume-value">${Math.round(s.musicVolume * 100)}%</span><input name="musicVolume" type="range" min="0" max="100" value="${s.musicVolume * 100}"></label></div><label class="checkbox"><input name="events" type="checkbox" ${s.events ? "checked" : ""}><span>启用随机世界事件<small>资源雨、临时加速与防护</small></span></label><p id="form-error" role="alert" class="error"></p><button class="primary full" type="submit">${newWorld ? "诞生，开始观察 ↗" : "保存设置"}</button></form>`);
+    <label>画面细节<select name="quality"><option value="high" ${s.quality === "high" ? "selected" : ""}>精致 · 表情与粒子</option><option value="low" ${s.quality === "low" ? "selected" : ""}>简洁 · 优先性能</option></select></label><div class="form-row"><label>音效音量 <span id="volume-value">${Math.round(s.volume * 100)}%</span><input name="volume" type="range" min="0" max="100" value="${s.volume * 100}"></label><label>音乐音量 <span id="music-volume-value">${Math.round(s.musicVolume * 100)}%</span><input name="musicVolume" type="range" min="0" max="100" value="${s.musicVolume * 100}"></label></div><label class="checkbox"><input name="events" type="checkbox" ${s.events ? "checked" : ""}><span>启用随机世界事件<small>资源雨、加速、防护、局部暴雨与雷暴</small></span></label><p id="form-error" role="alert" class="error"></p><button class="primary full" type="submit">${newWorld ? "诞生，开始观察 ↗" : "保存设置"}</button></form>`);
   if (newWorld) {
     const total = () => {
       $("#initial-total").textContent = String(
@@ -307,6 +308,7 @@ function settingsDialog(newWorld: boolean) {
       toast("新世界已诞生。拖动地图，开始探索。");
     } else {
       world!.settings = next;
+      if (!next.events) clearWeather(world!);
       toast("设置已保存，点击继续恢复模拟。");
     }
     closeDialog();
@@ -357,7 +359,8 @@ async function persist(slot: Slot, message?: string) {
     await saveWorld(world, slot);
     $("#save-status").textContent =
       `${slot === "auto" ? "自动" : "手动"}存档 · ${new Date().toLocaleTimeString("zh-CN", { hour12: false })}`;
-    if (slot === "manual") toast(message ?? "手动存档已保存；自动存档保存在独立槽位。");
+    if (slot === "manual")
+      toast(message ?? "手动存档已保存；自动存档保存在独立槽位。");
     await refreshSaves();
   } catch (e) {
     toast((e as Error).message);
@@ -390,8 +393,8 @@ async function savesDialog() {
           const w = validateWorld(structuredClone(save.world));
           closeDialog();
           start(w);
-          if ((save.world.version as number) < 6) {
-            toast("旧存档已升级：已支持满级爆炸、城堡治疗与四入口竞技场。");
+          if ((save.world.version as number) < 7) {
+            toast("旧存档已升级：已支持自然地图、雷雨和国王号令。");
             void persist(save.slot);
           } else toast("世界已恢复。");
         } catch (e) {
@@ -425,7 +428,7 @@ $("#file").onchange = async (e) => {
     if (file.size > 12_000_000) throw new Error("存档文件超过12MB限制。");
     const contents = await file.text();
     const w = importSave(contents);
-    const legacy = JSON.parse(contents).version < 6;
+    const legacy = JSON.parse(contents).version < 7;
     closeDialog();
     start(w);
     setPaused(true);
@@ -460,7 +463,7 @@ $("#help").onclick = () => {
   );
   $(".guide").insertAdjacentHTML(
     "afterbegin",
-    "<p><b>满级与城堡治疗</b>10级球死亡发生半径150、80伤害的敌我范围爆炸，国王任意等级死亡都会爆炸，每球只触发一次。满级禁止升级回血和吸血，但接触本国存活城堡仍可治疗，每恢复10生命消耗1资源，资源不足则部分恢复；不自动返城。</p><p><b>城堡出兵与冷兵器</b>新局城堡随机分散，各国等量初始兵力同时向四周射出，每次后续招募射出10球，初始与招募球有3秒双倍速冲锋，期间穿过友军和本城堡。每国拥有八种兵种，均分初始兵力；招募优先补充少数兵种。国王低于30%生命时，每次任职可触发一次5秒王者战意，减伤40%、攻击提高25%。范围攻击最多命中四个目标，并分摊伤害。近战自动挥砍，弓弩射箭；征服后球球保留原武器。</p><p><b>地形与配乐</b>沙地、林地减速，冰面滑行，山壁与水域阻挡；群岛通过桥梁交战，箭矢可越过水域。可选择矩形或圆形边界，圆周碰撞反弹，圆外不参与占领；中央湖泊阻挡球，中央竞技场由石墙围合，仅东南西北四个入口可通行，墙体阻挡球球、箭矢和爆炸。六首地图音乐随战况切换激战曲，暂停时音乐续播位置保留。</p>",
+    "<p><b>自然地图与局部天气</b>自然曲线地形共用绘图、移动与遮挡边界。暴雨和雷暴独立每45–75模拟秒出现，覆盖半径450；暴雨持续15秒、速度乘60%，雷暴持续12秒、每2秒随机地面落雷，提前1秒预警。雷击半径150、80固定伤害，雨中被雷击波及的球立即死亡；山壁、岩石和竞技场墙体遮挡，城堡不受伤，关闭事件会结束天气。</p><p><b>国王号令与哀悼</b>进攻号令冷却20秒，有敌方目标接近时，使200范围内己方球（含国王）攻击提高15%、持续6秒。自身防护在生命≤60%时触发，冷却25秒，减伤25%、持续4秒，不抵挡环境伤害。每次国王死亡，全国产生10秒停攻其他球的哀悼期，继任国王再次死亡重新计时；仍可攻城、占领、受伤、治疗和死亡爆炸，在途箭矢撞球消失但不伤球。</p><p><b>满级与城堡治疗</b>10级球死亡发生半径150、80伤害的敌我范围爆炸，国王任意等级死亡都会爆炸，每球只触发一次。满级禁止升级回血和吸血，但接触本国存活城堡仍可治疗，每恢复10生命消耗1资源，资源不足则部分恢复；不自动返城。</p><p><b>城堡出兵与冷兵器</b>新局城堡随机分散，各国等量初始兵力同时向四周射出，每次后续招募射出10球，初始与招募球有3秒双倍速冲锋，期间穿过友军和本城堡。每国拥有八种兵种，均分初始兵力；招募优先补充少数兵种。国王低于30%生命时，每次任职可触发一次5秒王者战意，减伤40%、攻击提高25%。范围攻击最多命中四个目标，并分摊伤害。近战自动挥砍，弓弩射箭；征服后球球保留原武器。</p><p><b>地形与配乐</b>沙地、林地减速，冰面滑行，山壁与水域阻挡；群岛通过桥梁交战，箭矢可越过水域。可选择矩形或圆形边界，圆周碰撞反弹，圆外不参与占领；中央湖泊阻挡球，中央竞技场由石墙围合，仅东南西北四个入口可通行，墙体阻挡球球、箭矢和爆炸。六首地图音乐随战况切换激战曲，暂停时音乐续播位置保留。</p>",
   );
 };
 const canvas = $("#world");
@@ -601,7 +604,7 @@ function updateUI() {
   $("#kingdom-list").innerHTML = w.kingdoms
     .map(
       (k) =>
-        `<button class="kingdom-card ${k.alive ? "" : "fallen"}" data-kingdom="${k.id}" style="--kingdom:${k.color}"><div class="kingdom-title"><span><i class="dot" style="background:${k.color}"></i>${escape(k.name)}</span><small>${k.alive ? `${((territory[k.id] / total) * 100).toFixed(1)}% 领地` : "已归入他国"}</small></div><div class="territory-track"><span style="width:${(territory[k.id] / total) * 100}%"></span></div><div class="kingdom-metrics"><span>八兵种混编</span><span>◉ ${count[k.id]}</span><span>◇ ${Math.floor(k.resources)}</span><span>⚔ ${k.kills}</span></div><div class="production-info">生产 ${rates[k.id].multiplier.toFixed(2)}× · ${rates[k.id].interval.toFixed(2)}秒 / 批（10球） · ${Math.floor(k.recruitProgress * 100)}%</div><div class="production-track"><span style="width:${k.recruitProgress * 100}%"></span></div><div class="troop-counts">${troopSummary(w, k.id)}</div></button>`,
+        `<button class="kingdom-card ${k.alive ? "" : "fallen"}" data-kingdom="${k.id}" style="--kingdom:${k.color}"><div class="kingdom-title"><span><i class="dot" style="background:${k.color}"></i>${escape(k.name)}</span><small>${k.alive ? `${((territory[k.id] / total) * 100).toFixed(1)}% 领地` : "已归入他国"}</small></div><div class="territory-track"><span style="width:${(territory[k.id] / total) * 100}%"></span></div><div class="kingdom-metrics"><span>八兵种混编</span><span>◉ ${count[k.id]}</span><span>◇ ${Math.floor(k.resources)}</span><span>⚔ ${k.kills}</span></div><div class="production-info">生产 ${rates[k.id].multiplier.toFixed(2)}× · ${rates[k.id].interval.toFixed(2)}秒 / 批（10球） · ${Math.floor(k.recruitProgress * 100)}%</div><div class="production-track"><span style="width:${k.recruitProgress * 100}%"></span></div>${k.ceasefireUntil > w.time ? `<div class="ceasefire" style="color:#e9bd8c">王国哀悼 · 停攻其他球 ${Math.ceil(k.ceasefireUntil - w.time)}秒</div>` : ""}<div class="troop-counts">${troopSummary(w, k.id)}</div></button>`,
     )
     .join("");
   document.querySelectorAll<HTMLButtonElement>("[data-kingdom]").forEach(
@@ -620,7 +623,7 @@ function updateUI() {
   if (b) {
     const k = w.kingdoms[b.kingdom];
     $("#inspector").innerHTML =
-      `<span class="eyebrow">${b.king ? "♛ 王冠的持有者" : "一个球球的故事"}</span><h3 style="color:${k.color}">球球 #${b.id}<small>LV. ${b.level}</small></h3><p>${escape(k.name)} · ${b.kills} 次击杀 · ${WEAPONS[b.weapon].icon} ${TROOP_NAMES[b.weapon]}${b.chargeUntil > w.time ? " · 冲锋中" : ""}</p><div class="health-track"><span style="width:${(b.hp / b.maxHp) * 100}%;background:${k.color}"></span></div><div class="detail-grid"><span>生命<b>${Math.ceil(b.hp)} / ${Math.ceil(b.maxHp)}</b></span><span>速度<b>${Math.round(Math.hypot(b.vx, b.vy))}</b></span><span>攻击 / 防御<b>${b.attack.toFixed(1)} / ${b.defense.toFixed(1)}</b></span><span>武器倍率 / 间隔<b>${WEAPONS[b.weapon].multiplier}× / ${WEAPONS[b.weapon].cooldown}s</b></span><span>经验<b>${Math.floor(b.xp)}${b.level < 10 ? ` / ${b.level * 35}` : " · 满级"}</b></span><span>射程 / 质量<b>${WEAPONS[b.weapon].range} / ${b.mass.toFixed(1)}</b></span></div><div class="skills">${b.king ? `<span>王者战意：${b.warCryUntil > w.time ? "发动中" : b.warCryUsed ? "本次任职已使用" : "低于30%生命触发"}</span>` : ""}${b.skills.map((s) => `<span>${s}</span>`).join("") || "<span>尚未觉醒技能</span>"}</div>`;
+      `<span class="eyebrow">${b.king ? "♛ 王冠的持有者" : "一个球球的故事"}</span><h3 style="color:${k.color}">球球 #${b.id}<small>LV. ${b.level}</small></h3><p>${escape(k.name)} · ${b.kills} 次击杀 · ${WEAPONS[b.weapon].icon} ${TROOP_NAMES[b.weapon]}${b.chargeUntil > w.time ? " · 冲锋中" : ""}</p><div class="health-track"><span style="width:${(b.hp / b.maxHp) * 100}%;background:${k.color}"></span></div><div class="detail-grid"><span>生命<b>${Math.ceil(b.hp)} / ${Math.ceil(b.maxHp)}</b></span><span>速度<b>${Math.round(Math.hypot(b.vx, b.vy))}</b></span><span>攻击 / 防御<b>${b.attack.toFixed(1)} / ${b.defense.toFixed(1)}</b></span><span>武器倍率 / 间隔<b>${WEAPONS[b.weapon].multiplier}× / ${WEAPONS[b.weapon].cooldown}s</b></span><span>经验<b>${Math.floor(b.xp)}${b.level < 10 ? ` / ${b.level * 35}` : " · 满级"}</b></span><span>射程 / 质量<b>${WEAPONS[b.weapon].range} / ${b.mass.toFixed(1)}</b></span></div><div class="skills">${b.king ? `<span>进攻号令：200范围、+15%攻击／6秒 · ${b.nextOrder > w.time ? Math.ceil(b.nextOrder - w.time) + "秒冷却" : "已就绪"}</span><span>自身防护：减伤25%／4秒 · ${b.guardUntil > w.time ? Math.ceil(b.nextGuard - w.time) + "秒冷却 · 发动中" : b.nextGuard > w.time ? Math.ceil(b.nextGuard - w.time) + "秒冷却" : "生命≤60%触发"}</span>` : ""}${b.orderUntil > w.time ? `<span>号令增益 · ${Math.ceil(b.orderUntil - w.time)}秒</span>` : ""}${b.king ? `<span>王者战意：${b.warCryUntil > w.time ? "发动中" : b.warCryUsed ? "本次任职已使用" : "低于30%生命触发"}</span>` : ""}${b.skills.map((s) => `<span>${s}</span>`).join("") || "<span>尚未觉醒技能</span>"}</div>`;
   } else if (selectedKingdom !== null) {
     const k = w.kingdoms[selectedKingdom];
     $("#inspector").innerHTML =
@@ -635,11 +638,20 @@ function updateUI() {
         `<div class="log"><time>${clock(l.time)}</time><span>${escape(l.text)}</span></div>`,
     )
     .join("");
-  const active = w.event.until > w.time;
+  const banners: string[] = [];
+  if (w.event.until > w.time)
+    banners.push(`${w.event.kind} · ${Math.ceil(w.event.until - w.time)}秒`);
+  if (w.weather.rain)
+    banners.push(
+      `局部暴雨 · 速度60% · ${Math.ceil(w.weather.rain.until - w.time)}秒`,
+    );
+  if (w.weather.storm)
+    banners.push(
+      `局部雷暴 · 雨中雷击必死 · ${Math.ceil(w.weather.storm.until - w.time)}秒`,
+    );
+  const active = banners.length > 0;
   $("#event-banner").classList.toggle("hidden", !active);
-  if (active)
-    $("#event-banner").textContent =
-      `✦ ${w.event.kind} · ${Math.ceil(w.event.until - w.time)}秒`;
+  if (active) $("#event-banner").textContent = `✦ ${banners.join(" ／ ")}`;
   $("#performance").textContent =
     `${Math.round(renderer.fps)} FPS · 实际 ${paused ? "0.0" : actualSpeed.toFixed(1)}× · 缩放 ${Math.round(renderer.camera.zoom * 100)}%${!paused && actualSpeed < speed * 0.7 ? " · 设备繁忙，模拟自动降速" : ""}`;
   if (w.winner !== null && !resultShown) {

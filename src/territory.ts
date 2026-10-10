@@ -1,4 +1,5 @@
 import { COLS, ROWS, TILE, type World } from "./sim";
+import { clipNaturalGround } from "./natural";
 type Point = [number, number];
 const cases: Record<number, number[][]> = {
   1: [[3, 0]],
@@ -142,7 +143,8 @@ export function drawTerritory(
     cache.set(w, entry);
   }
   ctx.save();
-  ctx.clip(entry.allowed);
+  if (w.terrainBoundaryVersion === 1) clipNaturalGround(ctx, w);
+  else ctx.clip(entry.allowed);
   for (const k of w.kingdoms) {
     ctx.fillStyle = k.color;
     ctx.globalAlpha = opacity;

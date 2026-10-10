@@ -34,7 +34,7 @@ try {
         };
       }),
   );
-  expect(saved.version).toBe(6);
+  expect(saved.version).toBe(7);
   expect(saved.rng).toBe(old.rng);
   expect(
     saved.balls
@@ -48,7 +48,7 @@ try {
       ),
   ).toBe(true);
   for (const b of saved.balls.filter((b) => b.king))
-    expect(b).toEqual(old.balls.find((o) => o.id === b.id));
+    expect(b).toMatchObject(old.balls.find((o) => o.id === b.id));
   await page.locator(".kingdom-card").first().click();
   await expect(page.locator("#inspector")).toContainText("生产倍率");
   await expect(page.locator("#inspector")).toContainText("招募进度");

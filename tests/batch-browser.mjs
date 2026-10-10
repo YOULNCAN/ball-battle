@@ -57,7 +57,7 @@ try {
   expect(saved.kingdoms.map((k) => [k.x, k.y])).toEqual(
     fixture.kingdoms.map((k) => [k.x, k.y]),
   );
-  expect(saved.version).toBe(6);
+  expect(saved.version).toBe(7);
   expect(errors).toEqual([]);
   console.log(
     "Batch browser passed: v4 castle positions retained, ten recruits, 180 cost, batch UI and save.",

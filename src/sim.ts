@@ -1,4 +1,7 @@
 import { installArena, type ArenaWall } from "./arena";
+import { initialWeather, advanceWeather, type Weather } from "./weather";
+import { royalSkills, ceased, orderMultiplier, guardMultiplier } from "./royal";
+import { refreshNatural } from "./natural";
 import { motionScale, elasticImpulse, physicsDelta } from "./physics";
 import { castlePositions } from "./castles";
 import {
@@ -12,6 +15,7 @@ import {
   type MapType,
   type Terrain,
   constrainBoundary,
+  syncNaturalWorld,
 } from "./maps";
 import {
   assignWeapons,
@@ -112,6 +116,10 @@ export interface Ball {
   attackUntil: number;
   warCryUsed: boolean;
   warCryUntil: number;
+  orderUntil: number;
+  nextOrder: number;
+  guardUntil: number;
+  nextGuard: number;
 }
 export interface Kingdom {
   id: number;
@@ -126,6 +134,7 @@ export interface Kingdom {
   kills: number;
   recruited: number;
   recruitProgress: number;
+  ceasefireUntil: number;
   weapon: Weapon;
 }
 export interface Cell {
@@ -155,7 +164,7 @@ export interface Log {
   text: string;
 }
 export interface World {
-  version: 6;
+  version: 7;
   settings: Settings;
   rng: number;
   nextId: number;
@@ -179,6 +188,8 @@ export interface World {
   blasts: Blast[];
   fires: Fire[];
   arenaWall: ArenaWall | null;
+  terrainBoundaryVersion: 0 | 1;
+  weather: Weather;
 }
 export interface Effect {
   x: number;
@@ -319,6 +330,10 @@ export function spawn(
     attackUntil: 0,
     warCryUsed: false,
     warCryUntil: 0,
+    orderUntil: 0,
+    nextOrder: 0,
+    guardUntil: 0,
+    nextGuard: 0,
   };
   w.balls.push(ball);
   return ball;
@@ -331,7 +346,7 @@ export function createWorld(settings: Settings = DEFAULTS): World {
   );
   s.population = s.perKingdom * s.kingdoms;
   const w: World = {
-    version: 6,
+    version: 7,
     settings: s,
     rng: seedHash(s.seed),
     nextId: 1,
@@ -355,6 +370,8 @@ export function createWorld(settings: Settings = DEFAULTS): World {
     blasts: [],
     fires: [],
     arenaWall: null,
+    terrainBoundaryVersion: 0,
+    weather: initialWeather(s.seed, 0),
   };
   w.mapType =
     s.map === "random"
@@ -376,6 +393,7 @@ export function createWorld(settings: Settings = DEFAULTS): World {
       kills: 0,
       recruited: 0,
       recruitProgress: 0,
+      ceasefireUntil: 0,
       weapon: weapons[i],
     });
   }
@@ -395,6 +413,8 @@ export function createWorld(settings: Settings = DEFAULTS): World {
   }
   generateTerrain(w, () => random(w));
   installArena(w);
+  w.terrainBoundaryVersion = 1;
+  syncNaturalWorld(w);
   for (const k of w.kingdoms) {
     const cx = Math.floor(k.x / TILE),
       cy = Math.floor(k.y / TILE);
@@ -459,6 +479,7 @@ export function damage(
   defender: Ball,
   impact: number,
 ): number {
+  if (ceased(w, attacker.kingdom)) return 0;
   const heavy = attacker.skills.includes("重击")
     ? impact > 0
       ? 1.4
@@ -480,16 +501,19 @@ export function damage(
   const ram = attacker.weapon === "shield" && impact > 0 ? 1.35 : 1;
   const warAttack = attacker.king && attacker.warCryUntil > w.time ? 1.25 : 1;
   const warShield = defender.king && defender.warCryUntil > w.time ? 0.6 : 1;
-  return Math.max(
-    2,
-    (attacker.attack + impact * 0.08 * Math.sqrt(attacker.mass)) *
-      heavy *
-      shield *
-      frontalShield *
-      ram *
-      warAttack *
-      warShield -
-      defender.defense,
+  return (
+    Math.max(
+      2,
+      (attacker.attack * orderMultiplier(w, attacker) +
+        impact * 0.08 * Math.sqrt(attacker.mass)) *
+        heavy *
+        shield *
+        frontalShield *
+        ram *
+        warAttack *
+        warShield -
+        defender.defense,
+    ) * guardMultiplier(w, defender)
   );
 }
 export function kingWarCry(w: World, b: Ball) {
@@ -560,27 +584,29 @@ export function collide(w: World, a: Ball, b: Ball, effects: Effect[] = []) {
     db = damage(w, a, b, impact);
   a.hp -= da;
   b.hp -= db;
-  w.combatHits += 2;
+  w.combatHits += Number(da > 0) + Number(db > 0);
   a.cooldown = b.cooldown = w.time + 0.3;
   if (a.level < 10 && a.skills.includes("吸血") && a.hp > 0)
     a.hp = Math.min(a.maxHp, a.hp + db * 0.15);
   if (b.level < 10 && b.skills.includes("吸血") && b.hp > 0)
     b.hp = Math.min(b.maxHp, b.hp + da * 0.15);
   if (effects.length < 100) {
-    effects.push({
-      x: a.x,
-      y: a.y,
-      text: `−${Math.round(da)}`,
-      color: w.kingdoms[b.kingdom].color,
-      kind: "hit",
-    });
-    effects.push({
-      x: b.x,
-      y: b.y,
-      text: `−${Math.round(db)}`,
-      color: w.kingdoms[a.kingdom].color,
-      kind: "hit",
-    });
+    if (da > 0)
+      effects.push({
+        x: a.x,
+        y: a.y,
+        text: `−${Math.round(da)}`,
+        color: w.kingdoms[b.kingdom].color,
+        kind: "hit",
+      });
+    if (db > 0)
+      effects.push({
+        x: b.x,
+        y: b.y,
+        text: `−${Math.round(db)}`,
+        color: w.kingdoms[a.kingdom].color,
+        kind: "hit",
+      });
   }
   if (b.hp <= 0 && a.hp > 0) reward(w, a);
   if (a.hp <= 0 && b.hp > 0) reward(w, b);
@@ -654,6 +680,7 @@ export function cleanup(w: World, effects: Effect[] = []) {
         heir.king = true;
         heir.warCryUsed = false;
         heir.warCryUntil = 0;
+        heir.nextOrder = heir.nextGuard = heir.guardUntil = 0;
         log(w, `${k.name}：球球 #${heir.id} 继承王冠。`);
       }
     }
@@ -780,8 +807,11 @@ function gridKey(x: number, y: number) {
 }
 export function step(w: World, dt = STEP): Effect[] {
   if (w.winner !== null) return [];
+  refreshNatural(w);
   w.time += dt;
+  advanceWeather(w);
   advanceFire(w);
+  royalSkills(w);
   const effects: Effect[] = [];
   const resourceGrid = new Map<number, Resource[]>();
   for (const r of w.resources) {
@@ -830,9 +860,14 @@ export function step(w: World, dt = STEP): Effect[] {
       for (const o of w.obstacles) reflect(b, o.x, o.y, o.r);
       for (const k of w.kingdoms)
         if (k.alive) {
-          if (k.id === b.kingdom && b.hp > 0 && Math.hypot(b.x-k.x,b.y-k.y) <= 42+b.r) {
-            const healed = Math.min(b.maxHp-b.hp, k.resources*10);
-            b.hp += healed; k.resources = Math.max(0,k.resources-healed/10);
+          if (
+            k.id === b.kingdom &&
+            b.hp > 0 &&
+            Math.hypot(b.x - k.x, b.y - k.y) <= 42 + b.r
+          ) {
+            const healed = Math.min(b.maxHp - b.hp, k.resources * 10);
+            b.hp += healed;
+            k.resources = Math.max(0, k.resources - healed / 10);
           }
           if (k.id === b.kingdom && b.chargeUntil > w.time) continue;
           const speed = Math.hypot(b.vx, b.vy);
@@ -843,10 +878,11 @@ export function step(w: World, dt = STEP): Effect[] {
           ) {
             const hit =
               Math.max(4, b.attack + speed * Math.sqrt(b.mass) * 0.06) *
-              (b.king && b.warCryUntil > w.time ? 1.25 : 1);
+              (b.king && b.warCryUntil > w.time ? 1.25 : 1) *
+              orderMultiplier(w, b);
             k.hp -= hit;
             w.combatHits++;
-            b.hp -= 5;
+            b.hp -= 5 * guardMultiplier(w, b);
             b.cooldown = w.time + 0.3;
             if (effects.length < 100)
               effects.push({
